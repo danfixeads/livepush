@@ -43,7 +43,7 @@ func (a *App) SetUpDatabaseTables() error {
 
 	var err error
 
-	tableNotificationsQuery := `CREATE TABLE IF NOT EXISTS notifications (
+	tablePushQuery := `CREATE TABLE IF NOT EXISTS push (
 					id int(10) unsigned NOT NULL AUTO_INCREMENT,
 					token varchar(255) DEFAULT NULL,
 					platform enum('android','ios') DEFAULT NULL,
@@ -59,7 +59,7 @@ func (a *App) SetUpDatabaseTables() error {
 					KEY platform (platform)
 			   ) ENGINE=InnoDB DEFAULT CHARSET=latin1`
 
-	_, err = a.Database.Query(tableNotificationsQuery)
+	_, err = a.Database.Query(tablePushQuery)
 
 	tableAppLogQuery := `CREATE TABLE IF NOT EXISTS applog (
 					id int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -72,7 +72,7 @@ func (a *App) SetUpDatabaseTables() error {
 
 	_, err = a.Database.Query(tableAppLogQuery)
 
-	tableClientsQuery := `CREATE TABLE IF NOT EXISTS clients (
+	tableClientQuery := `CREATE TABLE IF NOT EXISTS client (
 					id int(10) unsigned NOT NULL AUTO_INCREMENT,
 					clientid int(10) DEFAULT NULL,
 					pemfile varchar(30) DEFAULT NULL,
@@ -86,7 +86,7 @@ func (a *App) SetUpDatabaseTables() error {
 					KEY platform (clientid)
 			   ) ENGINE=InnoDB DEFAULT CHARSET=latin1`
 
-	_, err = a.Database.Query(tableClientsQuery)
+	_, err = a.Database.Query(tableClientQuery)
 
 	return err
 }
@@ -94,9 +94,6 @@ func (a *App) SetUpDatabaseTables() error {
 // SetUpRouter func
 func (a *App) SetUpRouter() error {
 	a.Router = mux.NewRouter()
-
-	//a.Router.HandleFunc("/push/ios", a.createPushIOS).Methods("POST")
-	//a.Router.HandleFunc("/push/android", a.createPushAndroid).Methods("POST")
 
 	// client handling
 	a.Router.HandleFunc("/clients", a.clientList).Methods("GET")
@@ -107,6 +104,10 @@ func (a *App) SetUpRouter() error {
 	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientUpdate).Methods("PUT")
 	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientDelete).Methods("DELETE")
 	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientGet).Methods("GET")
+
+	// push handling
+	a.Router.HandleFunc("/push/ios", a.createPushIOS).Methods("POST")
+	a.Router.HandleFunc("/push/ios", a.createPushAndroid).Methods("POST")
 
 	if strings.Contains(os.Args[0], "/_test/") {
 		return nil

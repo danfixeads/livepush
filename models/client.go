@@ -22,7 +22,7 @@ type Client struct {
 
 // Get method
 func (c *Client) Get(db *sql.DB, id int) error {
-	return db.QueryRow("SELECT id, clientid, pemfile, p12file, fcmtoken, active, inserted, updated FROM clients WHERE id = ?", id).Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.FCMToken, &c.Active, &c.Inserted, &c.Updated)
+	return db.QueryRow("SELECT id, clientid, pemfile, p12file, fcmtoken, active, inserted, updated FROM client WHERE id = ?", id).Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.FCMToken, &c.Active, &c.Inserted, &c.Updated)
 }
 
 // Create function
@@ -37,7 +37,7 @@ func (c *Client) Create(db *sql.DB) error {
 		return err
 	}
 
-	res, err := db.Exec("INSERT INTO clients (clientid) VALUES(?)", &c.ClientID)
+	res, err := db.Exec("INSERT INTO client (clientid) VALUES(?)", &c.ClientID)
 	if err != nil {
 		println("Exec err:", err.Error())
 		return err
@@ -69,7 +69,7 @@ func (c *Client) Update(db *sql.DB) error {
 	}
 
 	_, err :=
-		db.Exec("UPDATE clients SET clientid=?, pemfile=?, p12file=?, passphrase=?, fcmtoken=?, active=?, updated=NOW() WHERE id = ?",
+		db.Exec("UPDATE client SET clientid=?, pemfile=?, p12file=?, passphrase=?, fcmtoken=?, active=?, updated=NOW() WHERE id = ?",
 			c.ClientID, c.PemFile, c.P12File, c.PassPhrase, c.FCMToken, c.Active, c.ID)
 
 	return err
@@ -77,7 +77,7 @@ func (c *Client) Update(db *sql.DB) error {
 
 // Delete function
 func (c *Client) Delete(db *sql.DB) error {
-	rows, err := db.Exec("DELETE FROM clients WHERE id = ?", c.ID)
+	rows, err := db.Exec("DELETE FROM client WHERE id = ?", c.ID)
 
 	if affected, _ := rows.RowsAffected(); affected == 0 {
 		err = errors.New("No records were deleted")
@@ -89,7 +89,7 @@ func (c *Client) Delete(db *sql.DB) error {
 // ListClients function
 func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
-	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, fcmtoken, active, inserted, updated FROM clients LIMIT ? OFFSET ?", limit, start)
+	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, fcmtoken, active, inserted, updated FROM client LIMIT ? OFFSET ?", limit, start)
 
 	if err != nil {
 		return nil, err
@@ -109,19 +109,6 @@ func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
 	return clients, nil
 }
-
-// -----------------------
-// ERRORS -------------
-// -----------------------
-
-// ErrMissingClientID variable for Error handling
-var ErrMissingClientID = errors.New("ClientID cannot be empty")
-
-// ErrMissingVitalFields variable for Error Handling
-var ErrMissingVitalFields = errors.New("One of the following fields cannot be empty: PEMFile, P12File or FCMToken")
-
-// ErrMissingPassPhrase variable for Error Handling
-var ErrMissingPassPhrase = errors.New("PassPhrase cannot be empty")
 
 // -----------------------
 // HELPERS -------------

@@ -5,7 +5,8 @@ import (
 	"strings"
 )
 
-type dbconfig struct {
+// DBconfig struct
+type DBconfig struct {
 	DBHost string
 	DBPort string
 	DBName string
@@ -13,14 +14,15 @@ type dbconfig struct {
 	DBPass string
 }
 
-func ReturnConfig() dbconfig {
+// ReturnConfig function
+func ReturnConfig() DBconfig {
 
 	var dbName = "livepush"
 	if strings.Contains(os.Args[0], "/_test/") {
 		dbName = "livepush_test"
 	}
 
-	return dbconfig{
+	return DBconfig{
 		DBHost: "192.168.31.254",
 		DBPort: "3306",
 		DBName: dbName,
