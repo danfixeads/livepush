@@ -86,10 +86,10 @@ func (c *Client) Delete(db *sql.DB) error {
 	return err
 }
 
-// List function
-func List(db *sql.DB, start, limit int) ([]Client, error) {
+// ListClients function
+func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
-	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, fcmtoken, active, inserted, updated FROM clients LIMIT $1 OFFSET $2", limit, start)
+	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, fcmtoken, active, inserted, updated FROM clients LIMIT ? OFFSET ?", limit, start)
 
 	if err != nil {
 		return nil, err

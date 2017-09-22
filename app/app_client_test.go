@@ -195,6 +195,60 @@ func TestListClients(t *testing.T) {
 	clearTestClients()
 	addTestClients(122)
 
+	req, _ := http.NewRequest("GET", "/clients", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	if body := response.Body.String(); body == "[]" {
+		t.Errorf("Expected an array. Got %s", body)
+	}
+
+}
+
+func TestListClientsEmptyResponse(t *testing.T) {
+
+	clearTestClients()
+
+	req, _ := http.NewRequest("GET", "/clients", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	if body := response.Body.String(); body != "[]" {
+		t.Errorf("Expected an empty array. Got %s", body)
+	}
+
+}
+
+func TestListClientsPagination(t *testing.T) {
+
+	clearTestClients()
+	addTestClients(122)
+
+	req, _ := http.NewRequest("GET", "/clients/2/7", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	if body := response.Body.String(); body == "[]" {
+		t.Errorf("Expected an array. Got %s", body)
+	}
+}
+
+func TestListClientsPaginationWithInvalidStartValue(t *testing.T) {
+
+	clearTestClients()
+	addTestClients(122)
+
+	req, _ := http.NewRequest("GET", "/clients/0/1", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	if body := response.Body.String(); body == "[]" {
+		t.Errorf("Expected an array. Got %s", body)
+	}
 }
 
 // -----------------------

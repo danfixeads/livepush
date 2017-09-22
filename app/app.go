@@ -100,6 +100,9 @@ func (a *App) SetUpRouter() error {
 
 	// client handling
 	a.Router.HandleFunc("/clients", a.clientList).Methods("GET")
+	a.Router.HandleFunc("/clients/{start:[0-9]+}", a.clientList).Methods("GET")
+	a.Router.HandleFunc("/clients/{limit:[0-9]+}", a.clientList).Methods("GET")
+	a.Router.HandleFunc("/clients/{start:[0-9]+}/{limit:[0-9]+}", a.clientList).Methods("GET")
 	a.Router.HandleFunc("/client", a.clientCreate).Methods("POST")
 	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientUpdate).Methods("PUT")
 	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientDelete).Methods("DELETE")

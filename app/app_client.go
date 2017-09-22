@@ -71,6 +71,19 @@ func (a *App) clientDelete(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) clientList(w http.ResponseWriter, r *http.Request) {
 
+	vars := mux.Vars(r)
+
+	limit, _ := strconv.Atoi(vars["limit"])
+	start, _ := strconv.Atoi(vars["start"])
+
+	if limit > 10 || limit < 1 {
+		limit = 10
+	}
+
+	clients, _ := models.ListClients(a.Database, start, limit)
+
+	respondWithJSON(w, http.StatusOK, clients)
+
 }
 
 func (a *App) clientGet(w http.ResponseWriter, r *http.Request) {
