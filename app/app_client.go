@@ -19,6 +19,8 @@ func (a *App) clientCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	//c.Active = true
+
 	if err := c.Create(a.Database); err != nil {
 		switch err {
 		default:

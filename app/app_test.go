@@ -44,12 +44,12 @@ func TestSetUpDatabaseTables(t *testing.T) {
 	}
 
 	// check if the table exists
-	_, err = a.Database.Query("SELECT 1 FROM notifications LIMIT 1")
+	_, err = a.Database.Query("SELECT 1 FROM push LIMIT 1")
 	if err != nil {
 		t.Errorf("Database query error: %v", err)
 	}
 
-	_, err = a.Database.Query("SELECT 1 FROM clients LIMIT 1")
+	_, err = a.Database.Query("SELECT 1 FROM client LIMIT 1")
 	if err != nil {
 		t.Errorf("Database query error: %v", err)
 	}

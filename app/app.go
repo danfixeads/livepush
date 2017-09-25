@@ -78,8 +78,9 @@ func (a *App) SetUpDatabaseTables() error {
 					pemfile varchar(30) DEFAULT NULL,
 					p12file varchar(30) DEFAULT NULL,
 					passphrase varchar(30) DEFAULT NULL,
-					fcmtoken varchar(255) DEFAULT NULL,
-					active int(1) DEFAULT 0,
+					bundleidentifier varchar(40) DEFAULT NULL,
+					fcmauthkey varchar(255) DEFAULT NULL,
+					active int(1) DEFAULT NULL,
 					inserted datetime DEFAULT NULL,
 					updated datetime DEFAULT NULL,
 					PRIMARY KEY (id), 
@@ -107,7 +108,7 @@ func (a *App) SetUpRouter() error {
 
 	// push handling
 	a.Router.HandleFunc("/push/ios", a.createPushIOS).Methods("POST")
-	a.Router.HandleFunc("/push/ios", a.createPushAndroid).Methods("POST")
+	a.Router.HandleFunc("/push/android", a.createPushAndroid).Methods("POST")
 
 	if strings.Contains(os.Args[0], "/_test/") {
 		return nil

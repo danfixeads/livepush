@@ -15,7 +15,7 @@ import (
 
 func TestCreateClient(t *testing.T) {
 
-	payload := []byte(`{"clientid":1,"fcmtoken":"abc"}`)
+	payload := []byte(`{"clientid":1,"fcmauthkey":"abc"}`)
 
 	req, _ := http.NewRequest("POST", "/client", bytes.NewBuffer(payload))
 	response := executeRequest(req)
@@ -71,7 +71,7 @@ func TestUpdateClient(t *testing.T) {
 	var originalClient map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &originalClient)
 
-	payload := []byte(`{"clientid":22,"passphrase":"abc","pemfile":"a_file.pem"}`)
+	payload := []byte(`{"clientid":22,"passphrase":"abc","pemfile":"a_file.pem","bundleidentifier":"com.fixeads.imo"}`)
 
 	req, _ = http.NewRequest("PUT", "/client/2", bytes.NewBuffer(payload))
 	response = executeRequest(req)
@@ -256,7 +256,7 @@ func TestListClientsPaginationWithInvalidStartValue(t *testing.T) {
 // -----------------------
 
 func clearTestClients() {
-	_, err := a.Database.Exec("TRUNCATE clients")
+	_, err := a.Database.Exec("TRUNCATE client")
 	if err != nil {
 		panic(err)
 	}
@@ -274,7 +274,7 @@ func addTestClients(count int) {
 		values[i] = fmt.Sprintf("('%v',NOW())", i+1)
 	}
 
-	var query = fmt.Sprintf("INSERT INTO clients (clientid,inserted) VALUES %v", strings.Join(values, ", "))
+	var query = fmt.Sprintf("INSERT INTO client (clientid,inserted) VALUES %v", strings.Join(values, ", "))
 	//log.Print(query)
 	a.Database.Exec(query)
 }
