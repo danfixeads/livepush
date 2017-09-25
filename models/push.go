@@ -15,8 +15,10 @@ type Push struct {
 	Platform null.String `json:"platform"`
 	Title    null.String `json:"title"`
 	Subtitle null.String `json:"subtitle"`
-	Message  null.String `json:"message"`
+	Body     null.String `json:"body"`
 	Badge    null.Int    `json:"badge"`
+	Image    null.String `json:"image"`
+	Sound    null.String `json:"sound"`
 	Inserted null.String `json:"inserted"`
 	Sent     null.String `json:"sent"`
 	Response null.String `json:"response"`

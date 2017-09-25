@@ -51,6 +51,8 @@ func (a *App) SetUpDatabaseTables() error {
 					subtitle varchar(100) DEFAULT NULL,
 					message varchar(255) DEFAULT NULL,
 					badge int(11) DEFAULT NULL,
+					image varchar(100) DEFAULT NULL,
+					sound varchar(100) DEFAULT NULL,
 					inserted datetime DEFAULT NULL,
 					sent datetime DEFAULT NULL,
 					response varchar(255) DEFAULT NULL,
