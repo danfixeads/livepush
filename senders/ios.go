@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/danfixeads/livepush/models"
 	"github.com/sideshow/apns2"
@@ -17,6 +18,13 @@ type IOS struct {
 	Push     models.MultiplePush
 	client   models.Client
 	cert     tls.Certificate
+}
+
+// IOSPush struct
+type IOSPush struct {
+	push         models.Push
+	notification apns2.Notification
+	response     apns2.Response
 }
 
 // GetClient function
@@ -57,12 +65,22 @@ func (i *IOS) GetCertificate() error {
 // SendMessage function
 func (i *IOS) SendMessage() error {
 
+	total := len(i.Push.Tokens)
+
+	notifications := make(chan *apns2.Notification, total)
+	responses := make(chan *apns2.Response, total)
+
+	client := apns2.NewClient(i.cert).Development()
+
+	for i := 0; i < total; i++ {
+		go worker(client, notifications, responses)
+	}
+
 	for _, token := range i.Push.Tokens {
 
 		notification := &apns2.Notification{}
 		notification.DeviceToken = token.String
 		notification.Topic = i.client.BundleIdentifier.String
-		//notification.Payload = []byte(`{"aps":{"alert":"Hello!"}}`) // See Payload section below
 
 		var p = payload.NewPayload()
 		p.AlertTitle(i.Push.Title.String)
@@ -80,42 +98,39 @@ func (i *IOS) SendMessage() error {
 
 		notification.Payload = p
 
-		client := apns2.NewClient(i.cert).Development()
-		res, err := client.Push(notification)
+		notifications <- notification
 
-		if err != nil {
-			//log.Fatal("Error:", err)
-			return err
-		}
+		/*
+			res, err := client.Push(notification)
 
-		fmt.Printf("%v %v %v\n", res.StatusCode, res.ApnsID, res.Reason)
+			if err != nil {
+				//log.Fatal("Error:", err)
+				return err
+			}
 
+			fmt.Printf("%v %v %v\n", res.StatusCode, res.ApnsID, res.Reason)
+		*/
 	}
+
+	/*
+		for i := 0; i < total; i++ {
+			res := <-responses
+			fmt.Printf("%v %v %v\n", res.StatusCode, res.ApnsID, res.Reason)
+		}*/
+
+	close(notifications)
+	//close(responses)
 
 	return nil
 }
 
-/*
-func main() {
-
-	cert, err := certificate.FromP12File("../cert.p12", "")
-	if err != nil {
-		log.Fatal("Cert Error:", err)
+func worker(client *apns2.Client, notifications <-chan *apns2.Notification, responses chan<- *apns2.Response) {
+	for n := range notifications {
+		res, err := client.Push(n)
+		if err != nil {
+			log.Fatal("Push Error: ", err)
+		}
+		fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", n.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
+		responses <- res
 	}
-
-	notification := &apns2.Notification{}
-	notification.DeviceToken = "11aa01229f15f0f0c52029d8cf8cd0aeaf2365fe4cebc4af26cd6d76b7919ef7"
-	notification.Topic = "com.sideshow.Apns2"
-	notification.Payload = []byte(`{"aps":{"alert":"Hello!"}}`) // See Payload section below
-
-	client := apns2.NewClient(cert).Production()
-	res, err := client.Push(notification)
-
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	fmt.Printf("%v %v %v\n", res.StatusCode, res.ApnsID, res.Reason)
 }
-
-*/
