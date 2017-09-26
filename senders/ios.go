@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 
+	"gopkg.in/guregu/null.v3"
+
 	"github.com/danfixeads/livepush/models"
 	"github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/certificate"
@@ -23,14 +25,14 @@ type IOS struct {
 // IOSPush struct
 type IOSPush struct {
 	push         models.Push
-	notification apns2.Notification
+	notification *apns2.Notification
 	response     apns2.Response
 }
 
 // GetClient function
 func (i *IOS) GetClient(db *sql.DB) error {
 
-	if err := i.client.Get(db, i.ClientID); err != nil {
+	if err := i.client.GetByClientID(db, i.ClientID); err != nil {
 		return err
 	}
 
@@ -63,74 +65,88 @@ func (i *IOS) GetCertificate() error {
 }
 
 // SendMessage function
-func (i *IOS) SendMessage() error {
+func (i *IOS) SendMessage(db *sql.DB) error {
 
-	total := len(i.Push.Tokens)
+	totalPushes := len(i.Push.Tokens)
+	// make the worker array
+	pushes := make(chan *IOSPush, totalPushes)
 
-	notifications := make(chan *apns2.Notification, total)
-	responses := make(chan *apns2.Response, total)
+	client := apns2.NewClient(i.cert)
 
-	client := apns2.NewClient(i.cert).Development()
+	// determine which APNS service to use
+	if i.client.UseSandboxIOS.Bool {
+		client.Development() // the Sandbox
+	} else {
+		client.Production() // or the Production
+	}
 
-	for i := 0; i < total; i++ {
-		go worker(client, notifications, responses)
+	for i := 0; i < totalPushes; i++ {
+		go worker(db, client, pushes)
 	}
 
 	for _, token := range i.Push.Tokens {
 
-		notification := &apns2.Notification{}
-		notification.DeviceToken = token.String
-		notification.Topic = i.client.BundleIdentifier.String
+		iospush := IOSPush{}
 
-		var p = payload.NewPayload()
-		p.AlertTitle(i.Push.Title.String)
-		p.AlertSubtitle(i.Push.Subtitle.String)
-		p.AlertBody(i.Push.Body.String)
-		p.Badge(int(i.Push.Badge.Int64))
-		p.AlertLaunchImage(i.Push.Image.String)
-		p.ContentAvailable()
-		p.MutableContent()
+		iospush.notification = &apns2.Notification{}
+		iospush.notification.DeviceToken = token.String
+		iospush.notification.Topic = i.client.BundleIdentifier.String
 
-		image := map[string]string{
-			"attachment-url": i.Push.Image.String,
-		}
-		p.Custom("data", image)
+		pLoad := payload.NewPayload()
+		pLoad.AlertTitle(i.Push.Title.String)
+		pLoad.AlertSubtitle(i.Push.Subtitle.String)
+		pLoad.AlertBody(i.Push.Body.String)
+		pLoad.Badge(int(i.Push.Badge.Int64))
+		pLoad.AlertLaunchImage(i.Push.Image.String)
+		pLoad.ContentAvailable()
+		pLoad.MutableContent()
 
-		notification.Payload = p
-
-		notifications <- notification
-
-		/*
-			res, err := client.Push(notification)
-
-			if err != nil {
-				//log.Fatal("Error:", err)
-				return err
+		// add image if applicable
+		if i.Push.Image.Valid {
+			image := map[string]string{
+				"attachment-url": i.Push.Image.String,
 			}
+			pLoad.Custom("data", image)
+		}
 
-			fmt.Printf("%v %v %v\n", res.StatusCode, res.ApnsID, res.Reason)
-		*/
+		iospush.notification.Payload = pLoad
+
+		iospush.push = models.Push{}
+		iospush.push.ClientID = i.Push.ClientID
+		iospush.push.Token = token
+		iospush.push.Platform = null.String{NullString: sql.NullString{
+			String: "ios",
+			Valid:  true,
+		}}
+		iospush.push.Title = i.Push.Title
+		iospush.push.Subtitle = i.Push.Subtitle
+		iospush.push.Body = i.Push.Body
+		iospush.push.Badge = i.Push.Badge
+		iospush.push.Image = i.Push.Image
+
+		// add to the worker array
+		pushes <- &iospush
 	}
 
-	/*
-		for i := 0; i < total; i++ {
-			res := <-responses
-			fmt.Printf("%v %v %v\n", res.StatusCode, res.ApnsID, res.Reason)
-		}*/
-
-	close(notifications)
-	//close(responses)
+	close(pushes)
 
 	return nil
 }
 
-func worker(client *apns2.Client, notifications <-chan *apns2.Notification, responses chan<- *apns2.Response) {
-	for n := range notifications {
-		res, err := client.Push(n)
+func worker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
+
+	for p := range pushes {
+		res, err := client.Push(p.notification)
 		if err != nil {
 			log.Fatal("Push Error: ", err)
 		}
-		fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", n.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
-		responses <- res
+		p.push.Response = null.String{NullString: sql.NullString{
+			String: fmt.Sprintf("%d %s", res.StatusCode, res.Reason),
+			Valid:  true,
+		}}
+		p.push.Create(db)
+
+		fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
 	}
+
 }

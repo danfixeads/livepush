@@ -31,7 +31,7 @@ func (a *App) createPushIOS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ios.SendMessage(); err != nil {
+	if err := ios.SendMessage(a.Database); err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}

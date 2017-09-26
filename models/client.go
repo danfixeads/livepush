@@ -16,6 +16,7 @@ type Client struct {
 	P12File          null.String `json:"p12file"`
 	PassPhrase       null.String `json:"passphrase"`
 	BundleIdentifier null.String `json:"bundleidentifier"`
+	UseSandboxIOS    zero.Bool   `json:"usesandboxios"`
 	FCMAuthKey       null.String `json:"fcmauthkey"`
 	Active           zero.Bool   `json:"active"`
 	Inserted         null.String `json:"inserted"`
@@ -24,7 +25,15 @@ type Client struct {
 
 // Get method
 func (c *Client) Get(db *sql.DB, id int) error {
-	return db.QueryRow("SELECT id, clientid, pemfile, p12file, passphrase, bundleidentifier, fcmauthkey, active, inserted, updated FROM client WHERE id = ?", id).Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.FCMAuthKey, &c.Active, &c.Inserted, &c.Updated)
+	return db.QueryRow("SELECT id, clientid, pemfile, p12file, passphrase, bundleidentifier, usesandboxios, fcmauthkey, active, inserted, updated FROM client WHERE id = ?", id).Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, &c.Active, &c.Inserted, &c.Updated)
+}
+
+// GetByClientID function
+func (c *Client) GetByClientID(db *sql.DB, clientid int) error {
+	if err := db.QueryRow("SELECT id FROM client WHERE id = ? AND active = 1", clientid).Scan(&c.ID); err != nil {
+		return err
+	}
+	return c.Get(db, c.ID)
 }
 
 // Create function
@@ -44,7 +53,7 @@ func (c *Client) Create(db *sql.DB) error {
 		isActive = c.Active.Bool
 	}
 
-	res, err := db.Exec("INSERT INTO client (clientid, pemfile, p12file, passphrase, bundleidentifier, fcmauthkey, active, inserted) VALUES(?,?,?,?,?,?,?,NOW())", &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.FCMAuthKey, isActive)
+	res, err := db.Exec("INSERT INTO client (clientid, pemfile, p12file, passphrase, bundleidentifier, usesandboxios, fcmauthkey, active, inserted) VALUES(?,?,?,?,?,?,?,NOW())", &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, isActive)
 	if err != nil {
 		println("Exec err:", err.Error())
 		return err
@@ -82,8 +91,8 @@ func (c *Client) Update(db *sql.DB) error {
 	}
 
 	_, err :=
-		db.Exec("UPDATE client SET clientid=?, pemfile=?, p12file=?, passphrase=?, bundleidentifier=?, fcmauthkey=?, active=?, updated=NOW() WHERE id = ?",
-			c.ClientID, c.PemFile, c.P12File, c.BundleIdentifier, c.PassPhrase, c.FCMAuthKey, c.Active, c.ID)
+		db.Exec("UPDATE client SET clientid=?, pemfile=?, p12file=?, passphrase=?, bundleidentifier=?, usesandboxios=?, fcmauthkey=?, active=?, updated=NOW() WHERE id = ?",
+			c.ClientID, c.PemFile, c.P12File, c.BundleIdentifier, c.UseSandboxIOS, c.PassPhrase, c.FCMAuthKey, c.Active, c.ID)
 
 	return err
 }
@@ -102,7 +111,7 @@ func (c *Client) Delete(db *sql.DB) error {
 // ListClients function
 func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
-	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, bundleidentifier, fcmauthkey, active, inserted, updated FROM client LIMIT ? OFFSET ?", limit, start)
+	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, bundleidentifier, usesandboxios, fcmauthkey, active, inserted, updated FROM client LIMIT ? OFFSET ?", limit, start)
 
 	if err != nil {
 		return nil, err
@@ -114,7 +123,7 @@ func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
 	for rows.Next() {
 		var c Client
-		if err := rows.Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.BundleIdentifier, &c.FCMAuthKey, &c.Active, &c.Inserted, &c.Updated); err != nil {
+		if err := rows.Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, &c.Active, &c.Inserted, &c.Updated); err != nil {
 			return nil, err
 		}
 		clients = append(clients, c)
