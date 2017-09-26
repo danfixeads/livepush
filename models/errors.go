@@ -6,6 +6,9 @@ import "errors"
 // ERRORS -------------
 // -----------------------
 
+// ErrInvalidPayload variable for Error handling
+var ErrInvalidPayload = errors.New("Invalid payload")
+
 // ErrRecordNotFound variable for Error handling
 var ErrRecordNotFound = errors.New("Record was not found")
 

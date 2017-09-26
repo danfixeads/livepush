@@ -14,7 +14,7 @@ func (a *App) clientCreate(w http.ResponseWriter, r *http.Request) {
 	var c models.Client
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&c); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid payload")
+		respondWithError(w, http.StatusBadRequest, models.ErrInvalidPayload.Error())
 		return
 	}
 	defer r.Body.Close()
@@ -39,7 +39,7 @@ func (a *App) clientUpdate(w http.ResponseWriter, r *http.Request) {
 	var c models.Client
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&c); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid payload")
+		respondWithError(w, http.StatusBadRequest, models.ErrInvalidPayload.Error())
 		return
 	}
 	defer r.Body.Close()

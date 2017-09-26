@@ -113,6 +113,7 @@ func (a *App) SetUpRouter() error {
 	a.Router.HandleFunc("/push/ios", a.createPushIOS).Methods("POST")
 	a.Router.HandleFunc("/push/android", a.createPushAndroid).Methods("POST")
 
+	// return and start the server (if not test)
 	if strings.Contains(os.Args[0], "/_test/") {
 		return nil
 	}

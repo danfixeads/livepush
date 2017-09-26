@@ -13,7 +13,7 @@ func (a *App) createPushIOS(w http.ResponseWriter, r *http.Request) {
 	var mp models.MultiplePush
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&mp); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid payload")
+		respondWithError(w, http.StatusBadRequest, models.ErrInvalidPayload.Error())
 		return
 	}
 	defer r.Body.Close()
@@ -39,4 +39,28 @@ func (a *App) createPushIOS(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusCreated, mp)
 }
 
-func (a *App) createPushAndroid(w http.ResponseWriter, r *http.Request) {}
+func (a *App) createPushAndroid(w http.ResponseWriter, r *http.Request) {
+
+	var mp models.MultiplePush
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&mp); err != nil {
+		respondWithError(w, http.StatusBadRequest, models.ErrInvalidPayload.Error())
+		return
+	}
+	defer r.Body.Close()
+
+	var android senders.Android
+	android.ClientID = int(mp.ClientID.Int64)
+	android.Push = mp
+	if err := android.GetClient(a.Database); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := android.SendMessage(a.Database); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, mp)
+}
