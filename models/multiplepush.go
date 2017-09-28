@@ -12,4 +12,10 @@ type MultiplePush struct {
 	Badge    null.Int      `json:"badge"`
 	Image    null.String   `json:"image"`
 	Sound    null.String   `json:"sound"`
+	Type     int           `json:"type"`
+	TheID    string        `json:"the_id"`
+	UserID   int           `json:"user_id"`
+	Track    string        `json:"track"`
+	Main     string        `json:"main"`
+	Options  []PushOption  `json:"options"`
 }

@@ -24,15 +24,22 @@ type AndroidPush struct {
 }
 
 type data struct {
-	Message message `json:"message"`
+	Message  message `json:"message"`
+	Title    string  `json:"title"`
+	Subtitle string  `json:"subtitle"`
+	Body     string  `json:"body"`
+	Badge    int     `json:"badge"`
+	Image    string  `json:"image"`
 }
 
 type message struct {
-	Data  data2  `json:"data"`
-	Alert string `json:"alert"`
+	Data     dataType `json:"data"`
+	Alert    string   `json:"alert"`
+	Sound    int      `json:"sound"`
+	ImageURL string   `json:"image_url"`
 }
 
-type data2 struct {
+type dataType struct {
 	Type    int     `json:"type"`
 	Actions actions `json:"actions"`
 }
@@ -55,55 +62,50 @@ func (a *Android) GetClient(db *sql.DB) error {
 	return nil
 }
 
-// SetUpClient function
-func (a *Android) SetUpClient() error {
-
-	return nil
-}
-
 // SendMessage function
 func (a *Android) SendMessage(db *sql.DB) error {
 
 	c := fcm.NewFcmClient(a.client.FCMAuthKey.String)
 	//c.SetDryRun(true)
 
-	/*
-		data := map[string]string{
-			"msg":        "Hello World1",
-			"type":       "0",
-			"main":       "\\",
-			"alert":      "hello",
-			"resulttype": "test",
-			"title":      "Hello!",
-		}*/
-
 	data := data{
 		Message: message{
-			Data: data2{
+			Data: dataType{
 				Type: 0,
 				Actions: actions{
 					Main: "/",
 				},
 			},
-			Alert: "Hello World!",
+			Alert:    "Hello Green world!",
+			Sound:    1,
+			ImageURL: "https://imovirtualpt-images.akamaized.net///images_imovirtualpt///5343829_1_655x491_moradia-na-praia-barbecue-jardim-e-bricolage-vila-nova-de-gaia.jpg",
 		},
+		Title:    "",
+		Subtitle: "",
+		Body:     "",
+		Badge:    0,
+		Image:    "",
 	}
 	jsonByte, _ := json.Marshal(data)
-	fmt.Print(jsonByte)
+	// fmt.Print(jsonByte)
 	fmt.Print(bytes.NewBuffer(jsonByte))
 
-	ids := []string{
-		"fRE69G6iGx0:APA91bGJZBlY-2Ljor-WeDEWZghcA0yY5SC5pJeNtQp_OHnlktCy_2uQTacceaRUp5ieIiW6CLk6DXndBJeAReHLVvV1DgA4cpOyUaBU0Wb6CNJ86vOo9RnG0U9h9PFuAdi4nSNbc1qH",
-	}
+	for _, token := range a.Push.Tokens {
 
-	c.NewFcmRegIdsMsg(ids, data)
+		ids := []string{
+			token.String,
+		}
 
-	status, err := c.Send()
+		c.NewFcmRegIdsMsg(ids, data)
 
-	if err == nil {
-		status.PrintResults()
-	} else {
-		fmt.Println(err)
+		status, err := c.Send()
+
+		if err == nil {
+			status.PrintResults()
+		} else {
+			fmt.Println(err)
+		}
+
 	}
 
 	return nil

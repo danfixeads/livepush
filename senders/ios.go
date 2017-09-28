@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"gopkg.in/guregu/null.v3"
 
@@ -97,7 +98,8 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 		pLoad.AlertSubtitle(i.Push.Subtitle.String)
 		pLoad.AlertBody(i.Push.Body.String)
 		pLoad.Badge(int(i.Push.Badge.Int64))
-		pLoad.AlertLaunchImage(i.Push.Image.String)
+		pLoad.Sound(i.Push.Sound.String)
+		//pLoad.AlertLaunchImage(i.Push.Image.String)
 		pLoad.ContentAvailable()
 		pLoad.MutableContent()
 
@@ -123,6 +125,7 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 		iospush.push.Body = i.Push.Body
 		iospush.push.Badge = i.Push.Badge
 		iospush.push.Image = i.Push.Image
+		iospush.push.Sound = i.Push.Sound
 
 		// add to the worker array
 		pushes <- &iospush
@@ -144,6 +147,17 @@ func worker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
 			String: fmt.Sprintf("%d %s", res.StatusCode, res.Reason),
 			Valid:  true,
 		}}
+
+		if res.StatusCode == 200 {
+
+			t := time.Now()
+
+			p.push.Sent = null.String{NullString: sql.NullString{
+				String: fmt.Sprintf("%v", t),
+				Valid:  true,
+			}}
+		}
+
 		p.push.Create(db)
 
 		fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
