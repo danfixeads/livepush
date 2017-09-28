@@ -13,6 +13,7 @@ import (
 	"github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/certificate"
 	"github.com/sideshow/apns2/payload"
+	"github.com/vjeantet/jodaTime"
 )
 
 // IOS Struct
@@ -148,19 +149,17 @@ func worker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
 			Valid:  true,
 		}}
 
+		// add the sent datetime if statuscode is 200
 		if res.StatusCode == 200 {
-
-			t := time.Now()
-
 			p.push.Sent = null.String{NullString: sql.NullString{
-				String: fmt.Sprintf("%v", t),
+				String: jodaTime.Format("YYYY-MM-dd HH:mm:ss", time.Now()),
 				Valid:  true,
 			}}
 		}
 
 		p.push.Create(db)
 
-		fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
+		// fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
 	}
 
 }

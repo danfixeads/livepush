@@ -33,19 +33,23 @@ type data struct {
 }
 
 type message struct {
-	Data     dataType `json:"data"`
-	Alert    string   `json:"alert"`
-	Sound    int      `json:"sound"`
-	ImageURL string   `json:"image_url"`
+	Data  dataType `json:"data"`
+	Alert string   `json:"alert"`
+	Sound int      `json:"sound"`
 }
 
 type dataType struct {
-	Type    int     `json:"type"`
-	Actions actions `json:"actions"`
+	Type     int     `json:"type"`
+	ID       string  `json:"id"`
+	UserID   int     `json:"user_id"`
+	Track    string  `json:"track"`
+	Actions  actions `json:"actions"`
+	ImageURL string  `json:"image_url"`
 }
 
 type actions struct {
-	Main string `json:"main"`
+	Main string              `json:"main"`
+	Opt  []models.PushOption `json:"opt"`
 }
 
 // GetClient function
@@ -68,23 +72,31 @@ func (a *Android) SendMessage(db *sql.DB) error {
 	c := fcm.NewFcmClient(a.client.FCMAuthKey.String)
 	//c.SetDryRun(true)
 
+	o := make([]models.PushOption, 0)
+	o = append(o, models.PushOption{Label: "Ver anúncio", Path: "/ads/8803927"})
+	o = append(o, models.PushOption{Label: "Ver resultados", Path: "/saved-searches/@15063799774512"})
+
 	data := data{
 		Message: message{
 			Data: dataType{
-				Type: 0,
+				Type:   int(a.Push.Type.Int64),
+				ID:     a.Push.TheID.String,
+				UserID: int(a.Push.UserID.Int64),
+				Track:  a.Push.Track.String,
 				Actions: actions{
-					Main: "/",
+					Main: a.Push.Main.String,
+					Opt:  o,
 				},
+				ImageURL: a.Push.Image.String,
 			},
-			Alert:    "Hello Green world!",
-			Sound:    1,
-			ImageURL: "https://imovirtualpt-images.akamaized.net///images_imovirtualpt///5343829_1_655x491_moradia-na-praia-barbecue-jardim-e-bricolage-vila-nova-de-gaia.jpg",
+			Alert: a.Push.Body.String,
+			Sound: 1,
 		},
-		Title:    "",
-		Subtitle: "",
-		Body:     "",
-		Badge:    0,
-		Image:    "",
+		Title:    a.Push.Title.String,
+		Subtitle: a.Push.Subtitle.String,
+		Body:     a.Push.Body.String,
+		Badge:    int(a.Push.Badge.Int64),
+		Image:    a.Push.Image.String,
 	}
 	jsonByte, _ := json.Marshal(data)
 	// fmt.Print(jsonByte)

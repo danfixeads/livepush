@@ -21,11 +21,11 @@ type Push struct {
 	Badge    null.Int     `json:"badge"`
 	Image    null.String  `json:"image"`
 	Sound    null.String  `json:"sound"`
-	Type     int          `json:"type"`
-	TheID    string       `json:"the_id"`
-	UserID   int          `json:"user_id"`
-	Track    string       `json:"track"`
-	Main     string       `json:"main"`
+	Type     null.Int     `json:"type"`
+	TheID    null.String  `json:"the_id"`
+	UserID   null.Int     `json:"user_id"`
+	Track    null.String  `json:"track"`
+	Main     null.String  `json:"main"`
 	Options  []PushOption `json:"options"`
 	Inserted null.String  `json:"inserted"`
 	Sent     null.String  `json:"sent"`
@@ -58,7 +58,7 @@ func (p *Push) Create(db *sql.DB) error {
 
 	jsonOptions, _ := json.Marshal(&p.Options)
 
-	res, err := db.Exec("INSERT INTO push (clientid, token, platform, title, subtitle, body, badge, image, sound, type, the_id, user_id, track, main, options, inserted, response) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?)", &p.ClientID, &p.Token, &p.Platform, &p.Title, &p.Subtitle, &p.Body, &p.Badge, &p.Image, &p.Sound, &p.Type, &p.TheID, &p.UserID, &p.Track, &p.Main, fmt.Sprint(bytes.NewBuffer(jsonOptions)), &p.Response)
+	res, err := db.Exec("INSERT INTO push (clientid, token, platform, title, subtitle, body, badge, image, sound, type, the_id, user_id, track, main, options, inserted, sent, response) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),?,?)", &p.ClientID, &p.Token, &p.Platform, &p.Title, &p.Subtitle, &p.Body, &p.Badge, &p.Image, &p.Sound, &p.Type, &p.TheID, &p.UserID, &p.Track, &p.Main, fmt.Sprint(bytes.NewBuffer(jsonOptions)), &p.Sent, &p.Response)
 	if err != nil {
 		println("Exec err:", err.Error())
 		return err
