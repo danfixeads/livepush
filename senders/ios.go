@@ -3,6 +3,7 @@ package senders
 import (
 	"crypto/tls"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -12,7 +13,6 @@ import (
 	"github.com/danfixeads/livepush/models"
 	"github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/certificate"
-	"github.com/sideshow/apns2/payload"
 	"github.com/vjeantet/jodaTime"
 )
 
@@ -83,7 +83,7 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 	}
 
 	for i := 0; i < totalPushes; i++ {
-		go worker(db, client, pushes)
+		go iosworker(db, client, pushes)
 	}
 
 	for _, token := range i.Push.Tokens {
@@ -94,25 +94,8 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 		iospush.notification.DeviceToken = token.String
 		iospush.notification.Topic = i.client.BundleIdentifier.String
 
-		pLoad := payload.NewPayload()
-		pLoad.AlertTitle(i.Push.Title.String)
-		pLoad.AlertSubtitle(i.Push.Subtitle.String)
-		pLoad.AlertBody(i.Push.Body.String)
-		pLoad.Badge(int(i.Push.Badge.Int64))
-		pLoad.Sound(i.Push.Sound.String)
-		//pLoad.AlertLaunchImage(i.Push.Image.String)
-		pLoad.ContentAvailable()
-		pLoad.MutableContent()
-
-		// add image if applicable
-		if i.Push.Image.Valid {
-			image := map[string]string{
-				"attachment-url": i.Push.Image.String,
-			}
-			pLoad.Custom("data", image)
-		}
-
-		iospush.notification.Payload = pLoad
+		pLoad, _ := json.Marshal(i.Push.Payload)
+		iospush.notification.Payload = []byte(pLoad)
 
 		iospush.push = models.Push{}
 		iospush.push.ClientID = i.Push.ClientID
@@ -121,12 +104,10 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 			String: "ios",
 			Valid:  true,
 		}}
-		iospush.push.Title = i.Push.Title
-		iospush.push.Subtitle = i.Push.Subtitle
-		iospush.push.Body = i.Push.Body
-		iospush.push.Badge = i.Push.Badge
-		iospush.push.Image = i.Push.Image
-		iospush.push.Sound = i.Push.Sound
+		iospush.push.Payload = null.String{NullString: sql.NullString{
+			String: string(pLoad),
+			Valid:  true,
+		}}
 
 		// add to the worker array
 		pushes <- &iospush
@@ -137,7 +118,7 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 	return nil
 }
 
-func worker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
+func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
 
 	for p := range pushes {
 		res, err := client.Push(p.notification)
@@ -159,7 +140,7 @@ func worker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
 
 		p.push.Create(db)
 
-		// fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
+		fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
 	}
 
 }

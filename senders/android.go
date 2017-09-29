@@ -1,13 +1,16 @@
 package senders
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
+	"time"
 
 	fcm "github.com/NaySoftware/go-fcm"
 	"github.com/danfixeads/livepush/models"
+	"github.com/vjeantet/jodaTime"
+	null "gopkg.in/guregu/null.v3"
 )
 
 // Android Struct
@@ -19,37 +22,9 @@ type Android struct {
 
 // AndroidPush struct
 type AndroidPush struct {
-	push         models.Push
-	notification fcm.NotificationPayload
-}
-
-type data struct {
-	Message  message `json:"message"`
-	Title    string  `json:"title"`
-	Subtitle string  `json:"subtitle"`
-	Body     string  `json:"body"`
-	Badge    int     `json:"badge"`
-	Image    string  `json:"image"`
-}
-
-type message struct {
-	Data  dataType `json:"data"`
-	Alert string   `json:"alert"`
-	Sound int      `json:"sound"`
-}
-
-type dataType struct {
-	Type     int     `json:"type"`
-	ID       string  `json:"id"`
-	UserID   int     `json:"user_id"`
-	Track    string  `json:"track"`
-	Actions  actions `json:"actions"`
-	ImageURL string  `json:"image_url"`
-}
-
-type actions struct {
-	Main string              `json:"main"`
-	Opt  []models.PushOption `json:"opt"`
+	push    models.Push
+	token   string
+	payload map[string]interface{}
 }
 
 // GetClient function
@@ -69,56 +44,87 @@ func (a *Android) GetClient(db *sql.DB) error {
 // SendMessage function
 func (a *Android) SendMessage(db *sql.DB) error {
 
-	c := fcm.NewFcmClient(a.client.FCMAuthKey.String)
-	//c.SetDryRun(true)
+	totalPushes := len(a.Push.Tokens)
+	// make the worker array
+	pushes := make(chan *AndroidPush, totalPushes)
 
-	o := make([]models.PushOption, 0)
-	o = append(o, models.PushOption{Label: "Ver anúncio", Path: "/ads/8803927"})
-	o = append(o, models.PushOption{Label: "Ver resultados", Path: "/saved-searches/@15063799774512"})
-
-	data := data{
-		Message: message{
-			Data: dataType{
-				Type:   int(a.Push.Type.Int64),
-				ID:     a.Push.TheID.String,
-				UserID: int(a.Push.UserID.Int64),
-				Track:  a.Push.Track.String,
-				Actions: actions{
-					Main: a.Push.Main.String,
-					Opt:  o,
-				},
-				ImageURL: a.Push.Image.String,
-			},
-			Alert: a.Push.Body.String,
-			Sound: 1,
-		},
-		Title:    a.Push.Title.String,
-		Subtitle: a.Push.Subtitle.String,
-		Body:     a.Push.Body.String,
-		Badge:    int(a.Push.Badge.Int64),
-		Image:    a.Push.Image.String,
+	for i := 0; i < totalPushes; i++ {
+		go androidworker(db, a.client.FCMAuthKey.String, pushes)
 	}
-	jsonByte, _ := json.Marshal(data)
-	// fmt.Print(jsonByte)
-	fmt.Print(bytes.NewBuffer(jsonByte))
 
 	for _, token := range a.Push.Tokens {
 
+		androidpush := AndroidPush{}
+
+		androidpush.token = token.String
+		androidpush.payload = a.Push.Payload
+
+		androidpush.push = models.Push{}
+		androidpush.push.ClientID = a.Push.ClientID
+		androidpush.push.Token = token
+		androidpush.push.Platform = null.String{NullString: sql.NullString{
+			String: "android",
+			Valid:  true,
+		}}
+
+		pLoad, _ := json.Marshal(a.Push.Payload)
+
+		androidpush.push.Payload = null.String{NullString: sql.NullString{
+			String: string(pLoad),
+			Valid:  true,
+		}}
+
+		pushes <- &androidpush
+
+	}
+
+	return nil
+}
+
+func androidworker(db *sql.DB, authKey string, pushes <-chan *AndroidPush) {
+
+	for p := range pushes {
+
 		ids := []string{
-			token.String,
+			p.token,
 		}
 
-		c.NewFcmRegIdsMsg(ids, data)
+		client := fcm.NewFcmClient(authKey)
 
-		status, err := c.Send()
+		//payload := []byte(`{"message":{"data":{"type":0,"actions":{"main":"/"}},"alert":"Hello World!"}}`)
+
+		//shit := bytes.NewBuffer(payload)
+
+		client.NewFcmRegIdsMsg(ids, p.payload) // p.payload
+
+		res, err := client.Send()
+		if err != nil {
+			log.Fatal("Push Error: ", err)
+		}
+
+		results, _ := json.Marshal(res.Results)
+		p.push.Response = null.String{NullString: sql.NullString{
+			String: fmt.Sprintf("%d %v", res.StatusCode, string(results)),
+			Valid:  true,
+		}}
+
+		// add the sent datetime if statuscode is 200
+		if res.StatusCode == 200 && res.Success == 1 {
+			p.push.Sent = null.String{NullString: sql.NullString{
+				String: jodaTime.Format("YYYY-MM-dd HH:mm:ss", time.Now()),
+				Valid:  true,
+			}}
+		}
+
+		// add to the database
+		p.push.Create(db)
 
 		if err == nil {
-			status.PrintResults()
+			res.PrintResults()
 		} else {
 			fmt.Println(err)
 		}
 
 	}
 
-	return nil
 }
