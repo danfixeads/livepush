@@ -35,7 +35,7 @@ type IOSPush struct {
 }
 
 // setup the waitgroup variable
-var wg sync.WaitGroup
+var wgIOS sync.WaitGroup
 
 // GetClient function
 func (i *IOS) GetClient(db *sql.DB) error {
@@ -89,7 +89,7 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 	responses := make(chan *IOSPush, totalPushes)
 
 	// update the waitgroup with the amount of goroutines
-	wg.Add(totalPushes)
+	wgIOS.Add(totalPushes)
 
 	client := apns2.NewClient(i.cert)
 
@@ -131,22 +131,17 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 		pushes <- &iospush
 	}
 
-	/*
-		for i := 0; i < totalPushes; i++ {
-			res := <-responses
-			fmt.Printf("res: %v\n", res)
-		}*/
-
-	err := checkAndCallback(totalPushes, responses)
+	// check if there are "errors" and do callback (if applicable)
+	err := ioscheckAndCallback(totalPushes, responses)
 
 	close(pushes)
 	close(responses)
-	wg.Wait()
+	wgIOS.Wait()
 
 	return err
 }
 
-func checkAndCallback(total int, responses <-chan *IOSPush) error {
+func ioscheckAndCallback(total int, responses <-chan *IOSPush) error {
 
 	failed := make([]IOSPush, 0)
 	for i := 0; i < total; i++ {
@@ -176,7 +171,7 @@ func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush, respons
 		// push the message
 		res, err := client.Push(p.notification)
 		if err != nil {
-			log.Fatal("Push Error: ", err)
+			log.Fatal("IOS Push Error: ", err)
 		}
 		// check and save the response
 		p.push.Response = null.String{NullString: sql.NullString{
@@ -195,10 +190,11 @@ func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush, respons
 		// save the push record
 		p.push.Create(db)
 
+		// now update the responses
 		responses <- p
 
 		// this waitgroup routine is "done"
-		wg.Done()
+		wgIOS.Done()
 
 		//fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
 	}

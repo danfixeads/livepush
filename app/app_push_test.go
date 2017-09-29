@@ -10,7 +10,7 @@ import (
 )
 
 // -----------------------
-// CREATE ----------------
+// CREATE (IOS)-----------
 // -----------------------
 
 func TestCreatePushIOS(t *testing.T) {
@@ -148,6 +148,105 @@ func TestCreatePushIOSWithInvalidDevices(t *testing.T) {
 	}`)
 
 	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+}
+
+// -----------------------
+// CREATE (Android)-------
+// -----------------------
+
+func TestCreatePushAndroid(t *testing.T) {
+
+	clearTestPushes()
+	clearTestClients()
+	addTestClientValues()
+
+	payload := []byte(`{
+			"clientid": 2,
+			"tokens": ["fRE69G6iGx0:APA91bGJZBlY-2Ljor-WeDEWZghcA0yY5SC5pJeNtQp_OHnlktCy_2uQTacceaRUp5ieIiW6CLk6DXndBJeAReHLVvV1DgA4cpOyUaBU0Wb6CNJ86vOo9RnG0U9h9PFuAdi4nSNbc1qH",
+				"rubbish",
+				"dCB_XXqF-NU:APA91bGbqW5v_qd9gaAaVvhITgsohGhUHIp-pHxxFMAzSmvRKIqJPnjMZcqMVAZX4O8PSW9iYZcd-JRHSNKMf0Mb9JWxYY1llOtxN0dx1_fhxSjKPo0-SuObdfqPw3ZpNo7_AndKSq7P"
+			],
+			"payload": {
+				"message": {
+					"alert": "message",
+					"sound": 1,
+					"data": {
+						"type": 0,
+						"actions": {
+							"main": "/"
+						}
+					}
+				}
+			}
+		}`)
+
+	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if m["clientid"] == 0 || m["clientid"] == nil {
+		t.Errorf("Expected the ClientID to be greater than '0'. Got '%v' instead!", m["clientid"])
+	}
+
+}
+
+func TestCreatePushAndroidWithInvalidPayload(t *testing.T) {
+
+	payload := []byte(`{"clientid",1}`)
+
+	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+}
+
+func TestCreatePushAndroidWithMissingClientID(t *testing.T) {
+
+	payload := []byte(`{"missing":1}`)
+
+	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+}
+
+func TestCreatePushAndroidWithInvalidDevices(t *testing.T) {
+
+	clearTestClients()
+	addTestClientValues()
+
+	payload := []byte(`{
+			"clientid": 2,
+			"tokens": [
+				"expired_token...",
+				"rubbish"
+			],
+		
+			"payload": {
+				"message": {
+					"alert": "message",
+					"sound": 1,
+					"data": {
+						"type": 0,
+						"actions": {
+							"main": "/"
+						}
+					}
+				}
+			}
+		}`)
+
+	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
