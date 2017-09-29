@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"path/filepath"
+	"runtime"
+	"sync"
 	"time"
 
 	"gopkg.in/guregu/null.v3"
@@ -31,6 +34,9 @@ type IOSPush struct {
 	response     apns2.Response
 }
 
+// setup the waitgroup variable
+var wg sync.WaitGroup
+
 // GetClient function
 func (i *IOS) GetClient(db *sql.DB) error {
 
@@ -50,12 +56,20 @@ func (i *IOS) GetCertificate() error {
 
 	var err error
 
+	// determine the basepath value
+	var (
+		_, b, _, _ = runtime.Caller(0)
+		basepath   = filepath.Dir(b)
+	)
+
+	//fmt.Println(basepath)
+
 	if i.client.PemFile.Valid {
-		i.cert, err = certificate.FromPemFile(fmt.Sprintf("./senders/files/%s", i.client.PemFile.String), i.client.PassPhrase.String)
+		i.cert, err = certificate.FromPemFile(fmt.Sprintf("%s/files/%s", basepath, i.client.PemFile.String), i.client.PassPhrase.String)
 	}
 	if i.cert.Certificate == nil {
 		if i.client.P12File.Valid {
-			i.cert, err = certificate.FromP12File(fmt.Sprintf("./senders/files/%s", i.client.P12File.String), i.client.PassPhrase.String)
+			i.cert, err = certificate.FromP12File(fmt.Sprintf("%s/files/%s", basepath, i.client.P12File.String), i.client.PassPhrase.String)
 		}
 	}
 
@@ -70,8 +84,12 @@ func (i *IOS) GetCertificate() error {
 func (i *IOS) SendMessage(db *sql.DB) error {
 
 	totalPushes := len(i.Push.Tokens)
-	// make the worker array
+	// make the worker arrays
 	pushes := make(chan *IOSPush, totalPushes)
+	responses := make(chan *IOSPush, totalPushes)
+
+	// update the waitgroup with the amount of goroutines
+	wg.Add(totalPushes)
 
 	client := apns2.NewClient(i.cert)
 
@@ -83,7 +101,7 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 	}
 
 	for i := 0; i < totalPushes; i++ {
-		go iosworker(db, client, pushes)
+		go iosworker(db, client, pushes, responses)
 	}
 
 	for _, token := range i.Push.Tokens {
@@ -113,18 +131,54 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 		pushes <- &iospush
 	}
 
-	close(pushes)
+	/*
+		for i := 0; i < totalPushes; i++ {
+			res := <-responses
+			fmt.Printf("res: %v\n", res)
+		}*/
 
-	return nil
+	err := checkAndCallback(totalPushes, responses)
+
+	close(pushes)
+	close(responses)
+	wg.Wait()
+
+	return err
 }
 
-func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
+func checkAndCallback(total int, responses <-chan *IOSPush) error {
+
+	failed := make([]IOSPush, 0)
+	for i := 0; i < total; i++ {
+		res := <-responses
+		//fmt.Printf("response: %v\n", res)
+		if !res.push.Sent.Valid {
+			failed = append(failed, *res)
+			//fmt.Printf("failed: %v\n", failed)
+		}
+	}
+
+	// if all of the pushes failed (even if it's just one push sent)
+	// then return an error message
+	// NOTE: If there were various pushes sent successfully, and just a few that failed
+	// then it's not an "error"
+	var err error
+	if len(failed) == total {
+		err = models.ErrFailedToSendPush
+	}
+
+	return err
+}
+
+func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush, responses chan<- *IOSPush) {
 
 	for p := range pushes {
+		// push the message
 		res, err := client.Push(p.notification)
 		if err != nil {
 			log.Fatal("Push Error: ", err)
 		}
+		// check and save the response
 		p.push.Response = null.String{NullString: sql.NullString{
 			String: fmt.Sprintf("%d %s", res.StatusCode, res.Reason),
 			Valid:  true,
@@ -138,9 +192,15 @@ func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush) {
 			}}
 		}
 
+		// save the push record
 		p.push.Create(db)
 
-		fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
+		responses <- p
+
+		// this waitgroup routine is "done"
+		wg.Done()
+
+		//fmt.Printf("DeviceToken: %v StatusCode: %v ApnsID: %v Reason: %v\n", p.notification.DeviceToken, res.StatusCode, res.ApnsID, res.Reason)
 	}
 
 }

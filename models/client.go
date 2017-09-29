@@ -111,7 +111,7 @@ func (c *Client) Delete(db *sql.DB) error {
 // ListClients function
 func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
-	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, bundleidentifier, usesandboxios, fcmauthkey, active, inserted, updated FROM client LIMIT ? OFFSET ?", limit, start)
+	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, bundleidentifier, usesandboxios, fcmauthkey, active, inserted, updated FROM client ORDER BY id DESC LIMIT ? OFFSET ?", limit, start)
 
 	if err != nil {
 		return nil, err

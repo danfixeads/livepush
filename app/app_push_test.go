@@ -1,12 +1,158 @@
 package app_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 )
+
+// -----------------------
+// CREATE ----------------
+// -----------------------
+
+func TestCreatePushIOS(t *testing.T) {
+
+	clearTestPushes()
+	clearTestClients()
+	addTestClientValues()
+
+	payload := []byte(`{
+		"clientid": 2,
+		"tokens": ["f7534f19f6103e1a7ee26de615f2b8c8d3eeb63dc3da9922388ebfbf2b4d7717",
+			"944f5c35533d770566901cf533aceef1111d8bd86d8e081e4f3603ddbb928875",
+			"e9d03c7b63f950944eb5e34e4b875d7ad4918bc9ca71926afe11b1e30ec235c3",
+			"87242750b176aeef6cd0c342b485560c46c092786ae17136404541855a8a5c59",
+			"rubbish",
+			"06bafb503c7168c57d5db46d238d76479f1a3466a808dff34c9e6e1c2834a6ff",
+			"e9a736109990723b7bf9a33c7fb566601c375a8e64dacd07442a399361246f82"
+		],
+	
+		"payload": {
+			"aps": {
+				"alert": {
+					"title": "A test message",
+					"subtitle": "with a subtitle",
+					"body": "and a very sexy body"
+				},
+				"badge": 1,
+				"mutable-content": 1,
+				"content-available": 1
+			},
+			"data": {
+				"attachment-url": "https://images-cdn.9gag.com/photo/1067016_700b.jpg"
+			}
+		}
+	}`)
+
+	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if m["clientid"] == 0 || m["clientid"] == nil {
+		t.Errorf("Expected the ClientID to be greater than '0'. Got '%v' instead!", m["clientid"])
+	}
+
+}
+
+func TestCreatePushIOSWithInvalidPayload(t *testing.T) {
+
+	payload := []byte(`{"clientid",1}`)
+
+	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+}
+
+func TestCreatePushIOSWithMissingClientID(t *testing.T) {
+
+	payload := []byte(`{"missing":1}`)
+
+	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+}
+
+func TestCreatePushIOSWithIncorrectCertificates(t *testing.T) {
+
+	clearTestClients()
+	addTestClientValuesIncorrectCertificates()
+
+	payload := []byte(`{
+		"clientid": 2,
+		"tokens": [
+			"rubbish"
+		],
+	
+		"payload": {
+			"aps": {
+				"alert": {
+					"title": "A test message",
+					"subtitle": "with a subtitle",
+					"body": "and a very sexy body"
+				},
+				"badge": 1,
+				"mutable-content": 1,
+				"content-available": 1
+			},
+			"data": {
+				"attachment-url": "https://images-cdn.9gag.com/photo/1067016_700b.jpg"
+			}
+		}
+	}`)
+
+	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+}
+
+func TestCreatePushIOSWithInvalidDevices(t *testing.T) {
+
+	clearTestClients()
+	addTestClientValues()
+
+	payload := []byte(`{
+		"clientid": 2,
+		"tokens": [
+			"expired_token...",
+			"rubbish"
+		],
+	
+		"payload": {
+			"aps": {
+				"alert": {
+					"title": "A test message",
+					"subtitle": "with a subtitle",
+					"body": "and a very sexy body"
+				},
+				"badge": 1,
+				"mutable-content": 1,
+				"content-available": 1
+			},
+			"data": {
+				"attachment-url": "https://images-cdn.9gag.com/photo/1067016_700b.jpg"
+			}
+		}
+	}`)
+
+	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+}
 
 // -----------------------
 // GET -------------------

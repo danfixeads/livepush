@@ -278,3 +278,17 @@ func addTestClients(count int) {
 	//log.Print(query)
 	a.Database.Exec(query)
 }
+
+func addTestClientValues() {
+	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `p12file`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `active`, `inserted`, `updated`) VALUES (2, 2, 'dev_imo.pem', NULL, 'bragaBoss8', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
+	if err != nil {
+		panic(err)
+	}
+}
+
+func addTestClientValuesIncorrectCertificates() {
+	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `active`, `inserted`, `updated`) VALUES (2, 2, 'incorrect.pem', 'rubbish', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
+	if err != nil {
+		panic(err)
+	}
+}

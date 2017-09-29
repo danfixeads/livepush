@@ -72,7 +72,7 @@ func (p *Push) Delete(db *sql.DB) error {
 // ListPushes function
 func ListPushes(db *sql.DB, start, limit int) ([]Push, error) {
 
-	rows, err := db.Query("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push LIMIT ? OFFSET ?", limit, start)
+	rows, err := db.Query("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push ORDER BY id DESC LIMIT ? OFFSET ?", limit, start)
 
 	if err != nil {
 		return nil, err

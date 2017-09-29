@@ -29,3 +29,6 @@ var ErrMissingBundleIdentifier = errors.New("BundleIdentifier cannot be empty")
 
 // ErrFailedToLoadPEMFile variable for Error handling
 var ErrFailedToLoadPEMFile = errors.New("Failed to loaded either PEM or P12 file")
+
+// ErrFailedToSendPush variable for Error handling
+var ErrFailedToSendPush = errors.New("Failed to send push (or all pushes)")
