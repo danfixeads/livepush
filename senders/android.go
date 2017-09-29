@@ -104,7 +104,7 @@ func androidcheckAndCallback(total int, responses <-chan *AndroidPush) error {
 		//fmt.Printf("response: %v\n", res)
 		if !res.push.Sent.Valid {
 			failed = append(failed, *res)
-			fmt.Printf("failed: %v\n", failed)
+			//fmt.Printf("failed: %v\n", failed)
 		}
 	}
 
