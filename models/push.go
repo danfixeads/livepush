@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"errors"
 
 	null "gopkg.in/guregu/null.v3"
 )
@@ -55,6 +56,41 @@ func (p *Push) Create(db *sql.DB) error {
 	}
 
 	return err
+}
+
+// Delete function
+func (p *Push) Delete(db *sql.DB) error {
+	rows, err := db.Exec("DELETE FROM push WHERE id = ?", p.ID)
+
+	if affected, _ := rows.RowsAffected(); affected == 0 {
+		err = errors.New("No records were deleted")
+	}
+
+	return err
+}
+
+// ListPushes function
+func ListPushes(db *sql.DB, start, limit int) ([]Push, error) {
+
+	rows, err := db.Query("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push LIMIT ? OFFSET ?", limit, start)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	pushes := []Push{}
+
+	for rows.Next() {
+		var p Push
+		if err := rows.Scan(&p.ID, &p.ClientID, &p.Token, &p.Platform, &p.Payload, &p.Inserted, &p.Sent, &p.Response, &p.Attempts); err != nil {
+			return nil, err
+		}
+		pushes = append(pushes, p)
+	}
+
+	return pushes, nil
 }
 
 // -----------------------

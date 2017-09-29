@@ -53,7 +53,7 @@ func (c *Client) Create(db *sql.DB) error {
 		isActive = c.Active.Bool
 	}
 
-	res, err := db.Exec("INSERT INTO client (clientid, pemfile, p12file, passphrase, bundleidentifier, usesandboxios, fcmauthkey, active, inserted) VALUES(?,?,?,?,?,?,?,NOW())", &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, isActive)
+	res, err := db.Exec("INSERT INTO client (clientid, pemfile, p12file, passphrase, bundleidentifier, usesandboxios, fcmauthkey, active, inserted) VALUES(?,?,?,?,?,?,?,?,NOW())", &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, isActive)
 	if err != nil {
 		println("Exec err:", err.Error())
 		return err
@@ -92,7 +92,7 @@ func (c *Client) Update(db *sql.DB) error {
 
 	_, err :=
 		db.Exec("UPDATE client SET clientid=?, pemfile=?, p12file=?, passphrase=?, bundleidentifier=?, usesandboxios=?, fcmauthkey=?, active=?, updated=NOW() WHERE id = ?",
-			c.ClientID, c.PemFile, c.P12File, c.BundleIdentifier, c.UseSandboxIOS, c.PassPhrase, c.FCMAuthKey, c.Active, c.ID)
+			c.ClientID, c.PemFile, c.P12File, c.PassPhrase, c.BundleIdentifier, c.UseSandboxIOS, c.FCMAuthKey, c.Active, c.ID)
 
 	return err
 }

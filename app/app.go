@@ -109,6 +109,13 @@ func (a *App) SetUpRouter() error {
 	a.Router.HandleFunc("/push/ios", a.createPushIOS).Methods("POST")
 	a.Router.HandleFunc("/push/android", a.createPushAndroid).Methods("POST")
 
+	a.Router.HandleFunc("/pushes", a.pushList).Methods("GET")
+	a.Router.HandleFunc("/pushes/{start:[0-9]+}", a.pushList).Methods("GET")
+	a.Router.HandleFunc("/pushes/{limit:[0-9]+}", a.pushList).Methods("GET")
+	a.Router.HandleFunc("/pushes/{start:[0-9]+}/{limit:[0-9]+}", a.pushList).Methods("GET")
+	a.Router.HandleFunc("/push/{id:[0-9]+}", a.pushDelete).Methods("DELETE")
+	a.Router.HandleFunc("/push/{id:[0-9]+}", a.pushGet).Methods("GET")
+
 	// return and start the server (if not test)
 	if strings.Contains(os.Args[0], "/_test/") {
 		return nil

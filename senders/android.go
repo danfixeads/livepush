@@ -91,10 +91,6 @@ func androidworker(db *sql.DB, authKey string, pushes <-chan *AndroidPush) {
 
 		client := fcm.NewFcmClient(authKey)
 
-		//payload := []byte(`{"message":{"data":{"type":0,"actions":{"main":"/"}},"alert":"Hello World!"}}`)
-
-		//shit := bytes.NewBuffer(payload)
-
 		client.NewFcmRegIdsMsg(ids, p.payload) // p.payload
 
 		res, err := client.Send()
