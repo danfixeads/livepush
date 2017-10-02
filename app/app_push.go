@@ -1,7 +1,10 @@
 package app
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -33,7 +36,11 @@ func (a *App) createPushIOS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ios.SendMessage(a.Database); err != nil {
+	failed, err := ios.SendMessage(a.Database)
+	// send webhook (if applicable)
+	sendWebHook(&ios.Client, failed, "ios")
+
+	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -59,7 +66,11 @@ func (a *App) createPushAndroid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := android.SendMessage(a.Database); err != nil {
+	failed, err := android.SendMessage(a.Database)
+	// send webhook (if applicable)
+	sendWebHook(&android.Client, failed, "android")
+
+	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -115,4 +126,34 @@ func (a *App) pushGet(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, p)
 
+}
+
+func sendWebHook(c *models.Client, p []models.Push, s string) {
+
+	// fmt.Print("-------- HUH --------")
+
+	// if a webhook address exists, then use it to inform the client that something went wrong
+	if len(p) > 0 && c.WebHook.Valid {
+
+		// payload struct to send to the webhook receiver
+		type payload struct {
+			Service string
+			Failed  []models.Push
+		}
+
+		b := new(bytes.Buffer)
+		json.NewEncoder(b).Encode(payload{Service: s, Failed: p})
+		req, _ := http.NewRequest("POST", c.WebHook.String, b)
+
+		req.Header.Add("accept", "application/json")
+		req.Header.Add("content-type", "application/x-www-form-urlencoded")
+
+		res, _ := http.DefaultClient.Do(req)
+
+		body, _ := ioutil.ReadAll(res.Body)
+		//fmt.Println(res)
+		defer res.Body.Close()
+		fmt.Println(string(body))
+
+	}
 }

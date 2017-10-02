@@ -23,15 +23,14 @@ import (
 type IOS struct {
 	ClientID int
 	Push     models.MultiplePush
-	client   models.Client
+	Client   models.Client
 	cert     tls.Certificate
 }
 
 // IOSPush struct
 type IOSPush struct {
-	push         models.Push
+	Push         models.Push `json:"push"`
 	notification *apns2.Notification
-	response     apns2.Response
 }
 
 // setup the waitgroup variable
@@ -40,11 +39,11 @@ var wgIOS sync.WaitGroup
 // GetClient function
 func (i *IOS) GetClient(db *sql.DB) error {
 
-	if err := i.client.GetByClientID(db, i.ClientID); err != nil {
+	if err := i.Client.GetByClientID(db, i.ClientID); err != nil {
 		return err
 	}
 
-	if !i.client.BundleIdentifier.Valid || !i.client.PassPhrase.Valid || (!i.client.PemFile.Valid && !i.client.P12File.Valid) {
+	if !i.Client.BundleIdentifier.Valid || !i.Client.PassPhrase.Valid || (!i.Client.PemFile.Valid && !i.Client.P12File.Valid) {
 		return models.ErrMissingVitalFields
 	}
 
@@ -64,12 +63,12 @@ func (i *IOS) GetCertificate() error {
 
 	//fmt.Println(basepath)
 
-	if i.client.PemFile.Valid {
-		i.cert, err = certificate.FromPemFile(fmt.Sprintf("%s/files/%s", basepath, i.client.PemFile.String), i.client.PassPhrase.String)
+	if i.Client.PemFile.Valid {
+		i.cert, err = certificate.FromPemFile(fmt.Sprintf("%s/files/%s", basepath, i.Client.PemFile.String), i.Client.PassPhrase.String)
 	}
 	if i.cert.Certificate == nil {
-		if i.client.P12File.Valid {
-			i.cert, err = certificate.FromP12File(fmt.Sprintf("%s/files/%s", basepath, i.client.P12File.String), i.client.PassPhrase.String)
+		if i.Client.P12File.Valid {
+			i.cert, err = certificate.FromP12File(fmt.Sprintf("%s/files/%s", basepath, i.Client.P12File.String), i.Client.PassPhrase.String)
 		}
 	}
 
@@ -81,7 +80,7 @@ func (i *IOS) GetCertificate() error {
 }
 
 // SendMessage function
-func (i *IOS) SendMessage(db *sql.DB) error {
+func (i *IOS) SendMessage(db *sql.DB) ([]models.Push, error) {
 
 	totalPushes := len(i.Push.Tokens)
 	// make the worker arrays
@@ -94,7 +93,7 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 	client := apns2.NewClient(i.cert)
 
 	// determine which APNS service to use
-	if i.client.UseSandboxIOS.Bool {
+	if i.Client.UseSandboxIOS.Bool {
 		client.Development() // the Sandbox
 	} else {
 		client.Production() // or the Production
@@ -110,19 +109,19 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 
 		iospush.notification = &apns2.Notification{}
 		iospush.notification.DeviceToken = token.String
-		iospush.notification.Topic = i.client.BundleIdentifier.String
+		iospush.notification.Topic = i.Client.BundleIdentifier.String
 
 		pLoad, _ := json.Marshal(i.Push.Payload)
 		iospush.notification.Payload = []byte(pLoad)
 
-		iospush.push = models.Push{}
-		iospush.push.ClientID = i.Push.ClientID
-		iospush.push.Token = token
-		iospush.push.Platform = null.String{NullString: sql.NullString{
+		iospush.Push = models.Push{}
+		iospush.Push.ClientID = i.Push.ClientID
+		iospush.Push.Token = token
+		iospush.Push.Platform = null.String{NullString: sql.NullString{
 			String: "ios",
 			Valid:  true,
 		}}
-		iospush.push.Payload = null.String{NullString: sql.NullString{
+		iospush.Push.Payload = null.String{NullString: sql.NullString{
 			String: string(pLoad),
 			Valid:  true,
 		}}
@@ -132,26 +131,26 @@ func (i *IOS) SendMessage(db *sql.DB) error {
 	}
 
 	// check if there are "errors" and do callback (if applicable)
-	err := ioscheckAndCallback(totalPushes, responses)
+	failed, err := ioscheckAndCallback(totalPushes, responses, i)
 
 	close(pushes)
 	close(responses)
 	wgIOS.Wait()
 
-	return err
+	return failed, err
 }
 
-func ioscheckAndCallback(total int, responses <-chan *IOSPush) error {
+func ioscheckAndCallback(total int, responses <-chan *IOSPush, i *IOS) ([]models.Push, error) {
 
-	failed := make([]IOSPush, 0)
+	failed := make([]models.Push, 0)
 	for i := 0; i < total; i++ {
 		res := <-responses
 		//fmt.Printf("response: %v\n", res)
-		if !res.push.Sent.Valid {
-			failed = append(failed, *res)
-			//fmt.Printf("failed: %v\n", failed)
+		if !res.Push.Sent.Valid {
+			failed = append(failed, res.Push)
 		}
 	}
+	// fmt.Print(failed)
 
 	// if all of the pushes failed (even if it's just one push sent)
 	// then return an error message
@@ -162,7 +161,7 @@ func ioscheckAndCallback(total int, responses <-chan *IOSPush) error {
 		err = models.ErrFailedToSendPush
 	}
 
-	return err
+	return failed, err
 }
 
 func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush, responses chan<- *IOSPush) {
@@ -174,21 +173,21 @@ func iosworker(db *sql.DB, client *apns2.Client, pushes <-chan *IOSPush, respons
 			log.Fatal("IOS Push Error: ", err)
 		}
 		// check and save the response
-		p.push.Response = null.String{NullString: sql.NullString{
+		p.Push.Response = null.String{NullString: sql.NullString{
 			String: fmt.Sprintf("%d %s", res.StatusCode, res.Reason),
 			Valid:  true,
 		}}
 
 		// add the sent datetime if statuscode is 200
 		if res.StatusCode == 200 {
-			p.push.Sent = null.String{NullString: sql.NullString{
+			p.Push.Sent = null.String{NullString: sql.NullString{
 				String: jodaTime.Format("YYYY-MM-dd HH:mm:ss", time.Now()),
 				Valid:  true,
 			}}
 		}
 
 		// save the push record
-		p.push.Create(db)
+		p.Push.Create(db)
 
 		// now update the responses
 		responses <- p

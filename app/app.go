@@ -79,6 +79,7 @@ func (a *App) SetUpDatabaseTables() error {
 					bundleidentifier varchar(40) DEFAULT NULL,
 					usesandboxios int(1) DEFAULT NULL,
 					fcmauthkey varchar(255) DEFAULT NULL,
+					webhook varchar(255) DEFAULT NULL,
 					active int(1) DEFAULT NULL,
 					inserted datetime DEFAULT NULL,
 					updated datetime DEFAULT NULL,

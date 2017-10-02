@@ -18,12 +18,12 @@ import (
 type Android struct {
 	ClientID int
 	Push     models.MultiplePush
-	client   models.Client
+	Client   models.Client
 }
 
 // AndroidPush struct
 type AndroidPush struct {
-	push    models.Push
+	Push    models.Push `json:"push"`
 	token   string
 	payload map[string]interface{}
 }
@@ -34,11 +34,11 @@ var wgAndroid sync.WaitGroup
 // GetClient function
 func (a *Android) GetClient(db *sql.DB) error {
 
-	if err := a.client.GetByClientID(db, a.ClientID); err != nil {
+	if err := a.Client.GetByClientID(db, a.ClientID); err != nil {
 		return err
 	}
 
-	if !a.client.FCMAuthKey.Valid {
+	if !a.Client.FCMAuthKey.Valid {
 		return models.ErrMissingVitalFields
 	}
 
@@ -46,7 +46,7 @@ func (a *Android) GetClient(db *sql.DB) error {
 }
 
 // SendMessage function
-func (a *Android) SendMessage(db *sql.DB) error {
+func (a *Android) SendMessage(db *sql.DB) ([]models.Push, error) {
 
 	totalPushes := len(a.Push.Tokens)
 	// make the worker array
@@ -57,7 +57,7 @@ func (a *Android) SendMessage(db *sql.DB) error {
 	wgAndroid.Add(totalPushes)
 
 	for i := 0; i < totalPushes; i++ {
-		go androidworker(db, a.client.FCMAuthKey.String, pushes, responses)
+		go androidworker(db, a.Client.FCMAuthKey.String, pushes, responses)
 	}
 
 	for _, token := range a.Push.Tokens {
@@ -67,17 +67,17 @@ func (a *Android) SendMessage(db *sql.DB) error {
 		androidpush.token = token.String
 		androidpush.payload = a.Push.Payload
 
-		androidpush.push = models.Push{}
-		androidpush.push.ClientID = a.Push.ClientID
-		androidpush.push.Token = token
-		androidpush.push.Platform = null.String{NullString: sql.NullString{
+		androidpush.Push = models.Push{}
+		androidpush.Push.ClientID = a.Push.ClientID
+		androidpush.Push.Token = token
+		androidpush.Push.Platform = null.String{NullString: sql.NullString{
 			String: "android",
 			Valid:  true,
 		}}
 
 		pLoad, _ := json.Marshal(a.Push.Payload)
 
-		androidpush.push.Payload = null.String{NullString: sql.NullString{
+		androidpush.Push.Payload = null.String{NullString: sql.NullString{
 			String: string(pLoad),
 			Valid:  true,
 		}}
@@ -87,23 +87,23 @@ func (a *Android) SendMessage(db *sql.DB) error {
 	}
 
 	// check if there are "errors" and do callback (if applicable)
-	err := androidcheckAndCallback(totalPushes, responses)
+	failed, err := androidcheckAndCallback(totalPushes, responses)
 
 	close(pushes)
 	close(responses)
 	wgAndroid.Wait()
 
-	return err
+	return failed, err
 }
 
-func androidcheckAndCallback(total int, responses <-chan *AndroidPush) error {
+func androidcheckAndCallback(total int, responses <-chan *AndroidPush) ([]models.Push, error) {
 
-	failed := make([]AndroidPush, 0)
+	failed := make([]models.Push, 0)
 	for i := 0; i < total; i++ {
 		res := <-responses
 		//fmt.Printf("response: %v\n", res)
-		if !res.push.Sent.Valid {
-			failed = append(failed, *res)
+		if !res.Push.Sent.Valid {
+			failed = append(failed, res.Push)
 			//fmt.Printf("failed: %v\n", failed)
 		}
 	}
@@ -117,7 +117,7 @@ func androidcheckAndCallback(total int, responses <-chan *AndroidPush) error {
 		err = models.ErrFailedToSendPush
 	}
 
-	return err
+	return failed, err
 }
 
 func androidworker(db *sql.DB, authKey string, pushes <-chan *AndroidPush, responses chan<- *AndroidPush) {
@@ -138,21 +138,21 @@ func androidworker(db *sql.DB, authKey string, pushes <-chan *AndroidPush, respo
 		}
 
 		results, _ := json.Marshal(res.Results)
-		p.push.Response = null.String{NullString: sql.NullString{
+		p.Push.Response = null.String{NullString: sql.NullString{
 			String: fmt.Sprintf("%d %v", res.StatusCode, string(results)),
 			Valid:  true,
 		}}
 
 		// add the sent datetime if statuscode is 200
 		if res.StatusCode == 200 && res.Success == 1 {
-			p.push.Sent = null.String{NullString: sql.NullString{
+			p.Push.Sent = null.String{NullString: sql.NullString{
 				String: jodaTime.Format("YYYY-MM-dd HH:mm:ss", time.Now()),
 				Valid:  true,
 			}}
 		}
 
 		// add to the database
-		p.push.Create(db)
+		p.Push.Create(db)
 
 		// now update the responses
 		responses <- p
