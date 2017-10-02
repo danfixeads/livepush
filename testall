@@ -1,9 +1,12 @@
 #!/bin/bash
+
+rm profile.cov
+
 set -e
 for dir in $(find . -maxdepth 10 -not -path './.git*' -not -path '*/_*' -type d);
 do
 if ls $dir/*.go &> /dev/null; then
-    go test -short -covermode=count -coverprofile=$dir/profile.tmp $dir
+    go test -v -coverprofile=$dir/profile.tmp $dir
     if [ -f $dir/profile.tmp ]
     then
         cat $dir/profile.tmp | tail -n +2 >> profile.cov
@@ -12,4 +15,6 @@ if ls $dir/*.go &> /dev/null; then
 fi
 done
 
+echo "mode: set" | cat - profile.cov > /tmp/out && mv /tmp/out profile.cov
 go tool cover -func profile.cov
+go tool cover -html=profile.cov

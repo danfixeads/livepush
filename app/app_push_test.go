@@ -35,14 +35,14 @@ func TestCreatePushIOS(t *testing.T) {
 				"alert": {
 					"title": "A test message",
 					"subtitle": "with a subtitle",
-					"body": "and a very sexy body"
+					"body": "and a very nice body"
 				},
 				"badge": 1,
 				"mutable-content": 1,
 				"content-available": 1
 			},
 			"data": {
-				"attachment-url": "https://images-cdn.9gag.com/photo/1067016_700b.jpg"
+				"attachment-url": "https://media.mnn.com/assets/images/2015/08/sunset-sunrise-tips-water-reflections0.jpg.990x0_q80_crop-smart.jpg"
 			}
 		}
 	}`)
@@ -99,14 +99,14 @@ func TestCreatePushIOSWithIncorrectCertificates(t *testing.T) {
 				"alert": {
 					"title": "A test message",
 					"subtitle": "with a subtitle",
-					"body": "and a very sexy body"
+					"body": "and a very nice body"
 				},
 				"badge": 1,
 				"mutable-content": 1,
 				"content-available": 1
 			},
 			"data": {
-				"attachment-url": "https://images-cdn.9gag.com/photo/1067016_700b.jpg"
+				"attachment-url": "https://media.mnn.com/assets/images/2015/08/sunset-sunrise-tips-water-reflections0.jpg.990x0_q80_crop-smart.jpg"
 			}
 		}
 	}`)
@@ -135,14 +135,14 @@ func TestCreatePushIOSWithInvalidDevices(t *testing.T) {
 				"alert": {
 					"title": "A test message",
 					"subtitle": "with a subtitle",
-					"body": "and a very sexy body"
+					"body": "and a very nice body"
 				},
 				"badge": 1,
 				"mutable-content": 1,
 				"content-available": 1
 			},
 			"data": {
-				"attachment-url": "https://images-cdn.9gag.com/photo/1067016_700b.jpg"
+				"attachment-url": "https://media.mnn.com/assets/images/2015/08/sunset-sunrise-tips-water-reflections0.jpg.990x0_q80_crop-smart.jpg"
 			}
 		}
 	}`)

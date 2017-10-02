@@ -280,7 +280,7 @@ func addTestClients(count int) {
 }
 
 func addTestClientValues() {
-	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `p12file`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `webhook`, `active`, `inserted`, `updated`) VALUES (2, 2, 'dev_imo.pem', NULL, 'bragaBoss8', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 'http://localhost:8080/webhook_test', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
+	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `p12file`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `webhook`, `active`, `inserted`, `updated`) VALUES (2, 2, 'dev_imo.pem', NULL, 'bragaBoss8', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 'http://mockbin.org/bin/42fc077c-2536-4ce3-b1ea-f3da3aa90971', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
 	if err != nil {
 		panic(err)
 	}
