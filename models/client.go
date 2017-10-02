@@ -54,23 +54,19 @@ func (c *Client) Create(db *sql.DB) error {
 		isActive = c.Active.Bool
 	}
 
-	res, err := db.Exec("INSERT INTO client (clientid, pemfile, p12file, passphrase, bundleidentifier, usesandboxios, fcmauthkey, webhook, active, inserted) VALUES(?,?,?,?,?,?,?,?,?,NOW())", &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, &c.WebHook, isActive)
-	if err != nil {
-		println("Exec err:", err.Error())
-		return err
-	}
+	res, errExec := db.Exec("INSERT INTO client (clientid, pemfile, p12file, passphrase, bundleidentifier, usesandboxios, fcmauthkey, webhook, active, inserted) VALUES(?,?,?,?,?,?,?,?,?,NOW())", &c.ClientID, &c.PemFile, &c.P12File, &c.PassPhrase, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, &c.WebHook, isActive)
+	err = errExec
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		println("Error:", err.Error())
-		return err
-	}
+	if err == nil {
+		id, errLastInsertID := res.LastInsertId()
+		err = errLastInsertID
 
-	//println("LastInsertId:", id)
-	err = c.Get(db, int(id))
-	if err != nil {
-		println("Error:", err.Error())
-		return err
+		//println("LastInsertId:", id)
+
+		if err == nil {
+			err = c.Get(db, int(id))
+		}
+
 	}
 
 	return err
@@ -112,11 +108,9 @@ func (c *Client) Delete(db *sql.DB) error {
 // ListClients function
 func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
-	rows, err := db.Query("SELECT id, clientid, pemfile, p12file, bundleidentifier, usesandboxios, fcmauthkey, webhook, active, inserted, updated FROM client ORDER BY id DESC LIMIT ? OFFSET ?", limit, start)
-
-	if err != nil {
-		return nil, err
-	}
+	var err error
+	rows, errQuery := db.Query("SELECT id, clientid, pemfile, p12file, bundleidentifier, usesandboxios, fcmauthkey, webhook, active, inserted, updated FROM client ORDER BY id DESC LIMIT ? OFFSET ?", limit, start)
+	err = errQuery
 
 	defer rows.Close()
 
@@ -124,13 +118,12 @@ func ListClients(db *sql.DB, start, limit int) ([]Client, error) {
 
 	for rows.Next() {
 		var c Client
-		if err := rows.Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, &c.WebHook, &c.Active, &c.Inserted, &c.Updated); err != nil {
-			return nil, err
-		}
+		errScan := rows.Scan(&c.ID, &c.ClientID, &c.PemFile, &c.P12File, &c.BundleIdentifier, &c.UseSandboxIOS, &c.FCMAuthKey, &c.WebHook, &c.Active, &c.Inserted, &c.Updated)
+		err = errScan
 		clients = append(clients, c)
 	}
 
-	return clients, nil
+	return clients, err
 }
 
 // -----------------------
