@@ -2,8 +2,6 @@ package models_test
 
 import (
 	"database/sql"
-	"fmt"
-	"strings"
 	"testing"
 
 	"gopkg.in/guregu/null.v3/zero"
@@ -16,7 +14,7 @@ import (
 // GET -------------------
 // -----------------------
 
-func TestGet(t *testing.T) {
+func TestGetClient(t *testing.T) {
 
 	clearTestClients()
 	addTestClients(5)
@@ -42,7 +40,7 @@ func TestGetByClientID(t *testing.T) {
 
 }
 
-func TestGetByInvalidClientID(t *testing.T) {
+func TestGetClientByInvalidClientID(t *testing.T) {
 
 	clearTestClients()
 	addTestClients(5)
@@ -304,32 +302,4 @@ func TestListClientsPagination(t *testing.T) {
 		t.Error("Should have returned 20 mock clients and not 40!")
 	}
 
-}
-
-// -----------------------
-// HELPERS ---------------
-// -----------------------
-
-func clearTestClients() {
-	_, err := a.Database.Exec("TRUNCATE client")
-	if err != nil {
-		panic(err)
-	}
-}
-
-func addTestClients(count int) {
-
-	if count < 1 {
-		count = 1
-	}
-
-	var values = make([]string, count)
-
-	for i := 0; i < count; i++ {
-		values[i] = fmt.Sprintf("('%v',1,NOW())", i+1)
-	}
-
-	var query = fmt.Sprintf("INSERT INTO client (clientid,active,inserted) VALUES %v", strings.Join(values, ", "))
-	//log.Print(query)
-	a.Database.Exec(query)
 }

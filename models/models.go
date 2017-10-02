@@ -12,6 +12,12 @@ var ErrInvalidPayload = errors.New("Invalid payload")
 // ErrRecordNotFound variable for Error handling
 var ErrRecordNotFound = errors.New("Record was not found")
 
+// ErrMissingPlatform variable for Error handling
+var ErrMissingPlatform = errors.New("Platform is missing")
+
+// ErrMissingPayload variable for Error handling
+var ErrMissingPayload = errors.New("Payload is missing")
+
 // ErrMissingClientID variable for Error handling
 var ErrMissingClientID = errors.New("ClientID cannot be empty")
 

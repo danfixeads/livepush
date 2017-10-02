@@ -36,23 +36,18 @@ func (p *Push) Create(db *sql.DB) error {
 		return err
 	}
 
-	res, err := db.Exec("INSERT INTO push (clientid, token, platform, payload, inserted, sent, response) VALUES (?,?,?,?,NOW(),?,?)", &p.ClientID, &p.Token, &p.Platform, &p.Payload, &p.Sent, &p.Response)
-	if err != nil {
-		println("Exec err:", err.Error())
-		return err
-	}
+	res, errExec := db.Exec("INSERT INTO push (clientid, token, platform, payload, inserted, sent, response) VALUES (?,?,?,?,NOW(),?,?)", &p.ClientID, &p.Token, &p.Platform, &p.Payload, &p.Sent, &p.Response)
+	err = errExec
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		println("Error:", err.Error())
-		return err
-	}
+	if err == nil {
 
-	//println("LastInsertId:", id)
-	err = p.Get(db, int(id))
-	if err != nil {
-		println("Error:", err.Error())
-		return err
+		id, errInsertID := res.LastInsertId()
+		err = errInsertID
+
+		//println("LastInsertId:", id)
+		if err == nil {
+			err = p.Get(db, int(id))
+		}
 	}
 
 	return err
@@ -72,11 +67,9 @@ func (p *Push) Delete(db *sql.DB) error {
 // ListPushes function
 func ListPushes(db *sql.DB, start, limit int) ([]Push, error) {
 
-	rows, err := db.Query("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push ORDER BY id DESC LIMIT ? OFFSET ?", limit, start)
-
-	if err != nil {
-		return nil, err
-	}
+	var err error
+	rows, errQuery := db.Query("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push ORDER BY id DESC LIMIT ? OFFSET ?", limit, start)
+	err = errQuery
 
 	defer rows.Close()
 
@@ -84,13 +77,12 @@ func ListPushes(db *sql.DB, start, limit int) ([]Push, error) {
 
 	for rows.Next() {
 		var p Push
-		if err := rows.Scan(&p.ID, &p.ClientID, &p.Token, &p.Platform, &p.Payload, &p.Inserted, &p.Sent, &p.Response, &p.Attempts); err != nil {
-			return nil, err
-		}
+		errScan := rows.Scan(&p.ID, &p.ClientID, &p.Token, &p.Platform, &p.Payload, &p.Inserted, &p.Sent, &p.Response, &p.Attempts)
+		err = errScan
 		pushes = append(pushes, p)
 	}
 
-	return pushes, nil
+	return pushes, err
 }
 
 // -----------------------
@@ -102,6 +94,14 @@ func (p *Push) validateFields() error {
 	var err error
 	if !p.ClientID.Valid {
 		err = ErrMissingClientID
+	}
+
+	if !p.Platform.Valid {
+		err = ErrMissingPlatform
+	}
+
+	if !p.Payload.Valid {
+		err = ErrMissingPayload
 	}
 
 	// fmt.Printf("Notification object: %v err: %v", n, err)
