@@ -20,7 +20,7 @@ func TestCreatePushIOS(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-		"clientid": 2,
+		"clientid": "xpto",
 		"tokens": ["f7534f19f6103e1a7ee26de615f2b8c8d3eeb63dc3da9922388ebfbf2b4d7717",
 			"944f5c35533d770566901cf533aceef1111d8bd86d8e081e4f3603ddbb928875",
 			"e9d03c7b63f950944eb5e34e4b875d7ad4918bc9ca71926afe11b1e30ec235c3",
@@ -55,7 +55,7 @@ func TestCreatePushIOS(t *testing.T) {
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
 
-	if m["clientid"] == 0 || m["clientid"] == nil {
+	if m["clientid"] == "" || m["clientid"] == nil {
 		t.Errorf("Expected the ClientID to be greater than '0'. Got '%v' instead!", m["clientid"])
 	}
 
@@ -89,7 +89,7 @@ func TestCreatePushIOSWithIncorrectCertificates(t *testing.T) {
 	addTestClientValuesIncorrectCertificates()
 
 	payload := []byte(`{
-		"clientid": 2,
+		"clientid": "xpto",
 		"tokens": [
 			"rubbish"
 		],
@@ -124,7 +124,7 @@ func TestCreatePushIOSWithInvalidDevices(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-		"clientid": 2,
+		"clientid": "xpto",
 		"tokens": [
 			"expired_token...",
 			"rubbish"
@@ -165,7 +165,7 @@ func TestCreatePushAndroid(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-			"clientid": 2,
+			"clientid": "xpto",
 			"tokens": ["fRE69G6iGx0:APA91bGJZBlY-2Ljor-WeDEWZghcA0yY5SC5pJeNtQp_OHnlktCy_2uQTacceaRUp5ieIiW6CLk6DXndBJeAReHLVvV1DgA4cpOyUaBU0Wb6CNJ86vOo9RnG0U9h9PFuAdi4nSNbc1qH",
 				"rubbish",
 				"dCB_XXqF-NU:APA91bGbqW5v_qd9gaAaVvhITgsohGhUHIp-pHxxFMAzSmvRKIqJPnjMZcqMVAZX4O8PSW9iYZcd-JRHSNKMf0Mb9JWxYY1llOtxN0dx1_fhxSjKPo0-SuObdfqPw3ZpNo7_AndKSq7P"
@@ -192,7 +192,7 @@ func TestCreatePushAndroid(t *testing.T) {
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
 
-	if m["clientid"] == 0 || m["clientid"] == nil {
+	if m["clientid"] == "" || m["clientid"] == nil {
 		t.Errorf("Expected the ClientID to be greater than '0'. Got '%v' instead!", m["clientid"])
 	}
 
@@ -200,7 +200,7 @@ func TestCreatePushAndroid(t *testing.T) {
 
 func TestCreatePushAndroidWithInvalidPayload(t *testing.T) {
 
-	payload := []byte(`{"clientid",1}`)
+	payload := []byte(`{"clientid","xpto"}`)
 
 	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
 	response := executeRequest(req)
@@ -226,7 +226,7 @@ func TestCreatePushAndroidWithInvalidDevices(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-			"clientid": 2,
+			"clientid": "xpto",
 			"tokens": [
 				"expired_token...",
 				"rubbish"
@@ -397,7 +397,7 @@ func addTestPushes(count int) {
 	var values = make([]string, count)
 
 	for i := 0; i < count; i++ {
-		values[i] = fmt.Sprintf("('1','token_%v','ios',NOW())", i+1)
+		values[i] = fmt.Sprintf("('xpto','token_%v','ios',NOW())", i+1)
 	}
 
 	var query = fmt.Sprintf("INSERT INTO push (clientid,token,platform,inserted) VALUES %v", strings.Join(values, ", "))

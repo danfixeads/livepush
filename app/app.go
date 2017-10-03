@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/danfixeads/livepush/senders"
+
 	"github.com/danfixeads/livepush/models"
 	"github.com/gorilla/mux"
 	newrelic "github.com/newrelic/go-agent"
@@ -21,6 +23,7 @@ type App struct {
 	Router      *mux.Router
 	Database    *sql.DB
 	newrelicapp newrelic.Application
+	Rabbit      senders.Rabbit
 }
 
 // SetUpDatabase function
@@ -47,7 +50,7 @@ func (a *App) SetUpDatabaseTables() error {
 
 	tablePushQuery := `CREATE TABLE IF NOT EXISTS push (
 					id int(10) unsigned NOT NULL AUTO_INCREMENT,
-					clientid int(10) DEFAULT NULL,
+					clientid varchar(255) DEFAULT NULL,
 					token varchar(255) DEFAULT NULL,
 					platform enum('android','ios') DEFAULT NULL,
 					payload mediumtext DEFAULT NULL,
@@ -61,20 +64,9 @@ func (a *App) SetUpDatabaseTables() error {
 
 	_, err = a.Database.Query(tablePushQuery)
 
-	tableAppLogQuery := `CREATE TABLE IF NOT EXISTS applog (
-					id int(10) unsigned NOT NULL AUTO_INCREMENT,
-					inserted datetime DEFAULT NULL,
-					platform enum('android','ios') DEFAULT NULL,
-					description varchar(255) DEFAULT NULL,
-					PRIMARY KEY (id), 
-					KEY platform (platform)
-			   ) ENGINE=InnoDB DEFAULT CHARSET=latin1`
-
-	_, err = a.Database.Query(tableAppLogQuery)
-
 	tableClientQuery := `CREATE TABLE IF NOT EXISTS client (
 					id int(10) unsigned NOT NULL AUTO_INCREMENT,
-					clientid int(10) DEFAULT NULL,
+					clientid varchar(255) DEFAULT NULL,
 					pemfile varchar(30) DEFAULT NULL,
 					p12file varchar(30) DEFAULT NULL,
 					passphrase varchar(30) DEFAULT NULL,
@@ -162,12 +154,15 @@ func (a *App) SetUpNewRelic() error {
 // HELPERS -------------
 // -----------------------
 
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, map[string]string{"error": message})
+func (a *App) respondWithError(w http.ResponseWriter, r *http.Request, code int, message string) {
+	a.respondWithJSON(w, r, code, map[string]string{"error": message})
 }
 
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+func (a *App) respondWithJSON(w http.ResponseWriter, r *http.Request, code int, payload interface{}) {
+
 	response, _ := json.Marshal(payload)
+
+	go a.Rabbit.Send("client_id", fmt.Sprint(r.URL), code, r, string(response), 0)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

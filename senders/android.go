@@ -16,7 +16,7 @@ import (
 
 // Android Struct
 type Android struct {
-	ClientID int
+	ClientID string
 	Push     models.MultiplePush
 	Client   models.Client
 }

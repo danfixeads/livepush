@@ -54,11 +54,6 @@ func TestSetUpDatabaseTables(t *testing.T) {
 		t.Errorf("Database query error: %v", err)
 	}
 
-	_, err = a.Database.Query("SELECT 1 FROM applog LIMIT 1")
-	if err != nil {
-		t.Errorf("Database query error: %v", err)
-	}
-
 }
 
 func TestSetUpRouter(t *testing.T) {

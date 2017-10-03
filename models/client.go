@@ -11,7 +11,7 @@ import (
 // Client struct
 type Client struct {
 	ID               int         `json:"id"`
-	ClientID         null.Int    `json:"clientid"`
+	ClientID         null.String `json:"clientid"`
 	PemFile          null.String `json:"pemfile"`
 	P12File          null.String `json:"p12file"`
 	PassPhrase       null.String `json:"passphrase"`
@@ -30,8 +30,8 @@ func (c *Client) Get(db *sql.DB, id int) error {
 }
 
 // GetByClientID function
-func (c *Client) GetByClientID(db *sql.DB, clientid int) error {
-	if err := db.QueryRow("SELECT id FROM client WHERE id = ? AND active = 1", clientid).Scan(&c.ID); err != nil {
+func (c *Client) GetByClientID(db *sql.DB, clientid string) error {
+	if err := db.QueryRow("SELECT id FROM client WHERE clientid = ? AND active = 1", clientid).Scan(&c.ID); err != nil {
 		return err
 	}
 	return c.Get(db, c.ID)

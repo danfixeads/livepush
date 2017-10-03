@@ -42,10 +42,10 @@ func addTestClients(count int) {
 	var values = make([]string, count)
 
 	for i := 0; i < count; i++ {
-		values[i] = fmt.Sprintf("('%v',1,NOW())", i+1)
+		values[i] = fmt.Sprintf("('xpto',1,'fcm_key_%v',NOW())", i+1)
 	}
 
-	var query = fmt.Sprintf("INSERT INTO client (clientid,active,inserted) VALUES %v", strings.Join(values, ", "))
+	var query = fmt.Sprintf("INSERT INTO client (clientid,active,fcmauthkey,inserted) VALUES %v", strings.Join(values, ", "))
 	//log.Print(query)
 	a.Database.Exec(query)
 }
@@ -66,7 +66,7 @@ func addTestPushes(count int) {
 	var values = make([]string, count)
 
 	for i := 0; i < count; i++ {
-		values[i] = fmt.Sprintf("('1','token_%v','ios',NOW())", i+1)
+		values[i] = fmt.Sprintf("('xpto','token_%v','ios',NOW())", i+1)
 	}
 
 	var query = fmt.Sprintf("INSERT INTO push (clientid,token,platform,inserted) VALUES %v", strings.Join(values, ", "))

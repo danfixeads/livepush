@@ -15,7 +15,7 @@ import (
 
 func TestCreateClient(t *testing.T) {
 
-	payload := []byte(`{"clientid":1,"fcmauthkey":"abc"}`)
+	payload := []byte(`{"clientid":"xpto","fcmauthkey":"abc"}`)
 
 	req, _ := http.NewRequest("POST", "/client", bytes.NewBuffer(payload))
 	response := executeRequest(req)
@@ -29,8 +29,8 @@ func TestCreateClient(t *testing.T) {
 		t.Errorf("Expected the ID to be greater than '0'. Got '%v' instead!", m["id"])
 	}
 
-	if m["clientid"] == 0 || m["clientid"] == nil {
-		t.Errorf("Expected the ClientID to be greater than '0'. Got '%v' instead!", m["clientid"])
+	if m["clientid"] == "" || m["clientid"] == nil {
+		t.Errorf("Expected the ClientID to contain a value. Got '%v' instead!", m["clientid"])
 	}
 
 }
@@ -48,7 +48,7 @@ func TestCreateClientWithMissingClientID(t *testing.T) {
 
 func TestCreateClientWithInvalidPayload(t *testing.T) {
 
-	payload := []byte(`{"clientid",1}`)
+	payload := []byte(`{"clientid","xpto"}`)
 
 	req, _ := http.NewRequest("POST", "/client", bytes.NewBuffer(payload))
 	response := executeRequest(req)
@@ -71,7 +71,7 @@ func TestUpdateClient(t *testing.T) {
 	var originalClient map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &originalClient)
 
-	payload := []byte(`{"clientid":22,"passphrase":"abc","pemfile":"a_file.pem","bundleidentifier":"com.fixeads.imo"}`)
+	payload := []byte(`{"clientid":"xpto","passphrase":"abc","pemfile":"a_file.pem","bundleidentifier":"com.fixeads.imo"}`)
 
 	req, _ = http.NewRequest("PUT", "/client/2", bytes.NewBuffer(payload))
 	response = executeRequest(req)
@@ -280,14 +280,14 @@ func addTestClients(count int) {
 }
 
 func addTestClientValues() {
-	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `p12file`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `webhook`, `active`, `inserted`, `updated`) VALUES (2, 2, 'dev_imo.pem', NULL, 'bragaBoss8', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 'http://mockbin.org/bin/42fc077c-2536-4ce3-b1ea-f3da3aa90971', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
+	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `p12file`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `webhook`, `active`, `inserted`, `updated`) VALUES (2, 'xpto', 'dev_imo.pem', NULL, 'bragaBoss8', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 'http://mockbin.org/bin/42fc077c-2536-4ce3-b1ea-f3da3aa90971', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
 	if err != nil {
 		panic(err)
 	}
 }
 
 func addTestClientValuesIncorrectCertificates() {
-	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `active`, `inserted`, `updated`) VALUES (2, 2, 'incorrect.pem', 'rubbish', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
+	_, err := a.Database.Exec("INSERT INTO `client` (`id`, `clientid`, `pemfile`, `passphrase`, `bundleidentifier`, `usesandboxios`, `fcmauthkey`, `active`, `inserted`, `updated`) VALUES (2, 'xpto', 'incorrect.pem', 'rubbish', 'com.fixeads.imo.Imovirtual', 1, 'AAAAZnheqwk:APA91bHMkh--KR3BYy-l6WX5cRzjelGGskcJy0p-LFnWdP0AsAc7HGvvmE7Aih6MwVd1ObMNkfpbu4vMYoABi5Y25cP2-c09wHOhkQWh-03XreyCXt-AKYCqKo6hY9Ru34iumLP5DQY5', 1, '2017-09-25 11:20:57', '2017-09-25 14:44:05')")
 	if err != nil {
 		panic(err)
 	}

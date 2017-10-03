@@ -10,7 +10,7 @@ import (
 // Push struct
 type Push struct {
 	ID       int         `json:"id"`
-	ClientID null.Int    `json:"clientid"`
+	ClientID null.String `json:"clientid"`
 	Token    null.String `json:"token"`
 	Platform null.String `json:"platform"`
 	Payload  null.String `json:"payload"`

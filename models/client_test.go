@@ -33,7 +33,7 @@ func TestGetByClientID(t *testing.T) {
 	addTestClients(5)
 
 	var client models.Client
-	err := client.GetByClientID(a.Database, 1)
+	err := client.GetByClientID(a.Database, "xpto")
 	if err != nil {
 		t.Errorf("Following error occured: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestGetClientByInvalidClientID(t *testing.T) {
 	addTestClients(5)
 
 	var client models.Client
-	err := client.GetByClientID(a.Database, 120)
+	err := client.GetByClientID(a.Database, "fake")
 	if err == nil {
 		t.Error("Should not have returned any rows")
 	}
@@ -61,9 +61,9 @@ func TestCreateClient(t *testing.T) {
 	clearTestClients()
 
 	var client models.Client
-	client.ClientID = null.Int{NullInt64: sql.NullInt64{
-		Int64: 2,
-		Valid: true,
+	client.ClientID = null.String{NullString: sql.NullString{
+		String: "xpto",
+		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{
 		String: "p12.pem",
@@ -101,9 +101,9 @@ func TestCreateClientWithEmptyValues(t *testing.T) {
 func TestCreateClientWithEmptyPassPhrase(t *testing.T) {
 
 	var client models.Client
-	client.ClientID = null.Int{NullInt64: sql.NullInt64{
-		Int64: 2,
-		Valid: true,
+	client.ClientID = null.String{NullString: sql.NullString{
+		String: "xpto",
+		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{
 		String: "p12.pem",
@@ -122,9 +122,9 @@ func TestCreateClientWithEmptyPassPhrase(t *testing.T) {
 func TestCreateClientWithEmptyBundleIdentifier(t *testing.T) {
 
 	var client models.Client
-	client.ClientID = null.Int{NullInt64: sql.NullInt64{
-		Int64: 2,
-		Valid: true,
+	client.ClientID = null.String{NullString: sql.NullString{
+		String: "xpto",
+		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{
 		String: "p12.pem",
@@ -152,9 +152,9 @@ func TestUpdate(t *testing.T) {
 	var client models.Client
 	client.Get(a.Database, 2)
 
-	client.ClientID = null.Int{NullInt64: sql.NullInt64{
-		Int64: 8,
-		Valid: true,
+	client.ClientID = null.String{NullString: sql.NullString{
+		String: "abc",
+		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{
 		String: "p12.pem",
@@ -186,16 +186,20 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
-func TestUpdateWithInvalidValues(t *testing.T) {
+func TestUpdateClientWithInvalidValues(t *testing.T) {
 	clearTestClients()
 	addTestClients(5)
 
 	var client models.Client
 	client.Get(a.Database, 2)
 
-	client.ClientID = null.Int{NullInt64: sql.NullInt64{
-		Int64: 8,
-		Valid: true,
+	client.ClientID = null.String{NullString: sql.NullString{
+		String: "abc",
+		Valid:  true,
+	}}
+	client.FCMAuthKey = null.String{NullString: sql.NullString{
+		String: "",
+		Valid:  false,
 	}}
 
 	err := client.Update(a.Database)
@@ -211,9 +215,9 @@ func TestUpdateNonExistingClient(t *testing.T) {
 
 	var client models.Client
 
-	client.ClientID = null.Int{NullInt64: sql.NullInt64{
-		Int64: 8,
-		Valid: true,
+	client.ClientID = null.String{NullString: sql.NullString{
+		String: "abc",
+		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{
 		String: "p12.pem",
@@ -242,7 +246,7 @@ func TestUpdateNonExistingClient(t *testing.T) {
 // DELETE ----------------
 // -----------------------
 
-func TestDelete(t *testing.T) {
+func TestDeleteClient(t *testing.T) {
 
 	clearTestClients()
 	addTestClients(5)

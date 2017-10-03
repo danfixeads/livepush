@@ -18,34 +18,34 @@ func (a *App) createPushIOS(w http.ResponseWriter, r *http.Request) {
 	var mp models.MultiplePush
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&mp); err != nil {
-		respondWithError(w, http.StatusBadRequest, models.ErrInvalidPayload.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, models.ErrInvalidPayload.Error())
 		return
 	}
 	defer r.Body.Close()
 
 	var ios senders.IOS
-	ios.ClientID = int(mp.ClientID.Int64)
+	ios.ClientID = mp.ClientID.String
 	ios.Push = mp
 	if err := ios.GetClient(a.Database); err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := ios.GetCertificate(); err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	failed, err := ios.SendMessage(a.Database)
 	// send webhook (if applicable)
-	sendWebHook(&ios.Client, failed, "ios")
+	go sendWebHook(&ios.Client, failed, "ios")
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, mp)
+	a.respondWithJSON(w, r, http.StatusCreated, mp)
 }
 
 func (a *App) createPushAndroid(w http.ResponseWriter, r *http.Request) {
@@ -53,29 +53,30 @@ func (a *App) createPushAndroid(w http.ResponseWriter, r *http.Request) {
 	var mp models.MultiplePush
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&mp); err != nil {
-		respondWithError(w, http.StatusBadRequest, models.ErrInvalidPayload.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, models.ErrInvalidPayload.Error())
 		return
 	}
 	defer r.Body.Close()
 
 	var android senders.Android
-	android.ClientID = int(mp.ClientID.Int64)
+	android.ClientID = mp.ClientID.String
 	android.Push = mp
 	if err := android.GetClient(a.Database); err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		fmt.Print(err.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	failed, err := android.SendMessage(a.Database)
 	// send webhook (if applicable)
-	sendWebHook(&android.Client, failed, "android")
+	go sendWebHook(&android.Client, failed, "android")
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, mp)
+	a.respondWithJSON(w, r, http.StatusCreated, mp)
 }
 
 func (a *App) pushDelete(w http.ResponseWriter, r *http.Request) {
@@ -85,11 +86,11 @@ func (a *App) pushDelete(w http.ResponseWriter, r *http.Request) {
 
 	p := models.Push{ID: id}
 	if err := p.Delete(a.Database); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		a.respondWithError(w, r, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+	a.respondWithJSON(w, r, http.StatusOK, map[string]string{"result": "success"})
 
 }
 
@@ -106,7 +107,7 @@ func (a *App) pushList(w http.ResponseWriter, r *http.Request) {
 
 	clients, _ := models.ListPushes(a.Database, start, limit)
 
-	respondWithJSON(w, http.StatusOK, clients)
+	a.respondWithJSON(w, r, http.StatusOK, clients)
 
 }
 
@@ -119,12 +120,12 @@ func (a *App) pushGet(w http.ResponseWriter, r *http.Request) {
 	if err := p.Get(a.Database, id); err != nil {
 		switch err {
 		default:
-			respondWithError(w, http.StatusNotFound, "Push not found")
+			a.respondWithError(w, r, http.StatusNotFound, "Push not found")
 		}
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, p)
+	a.respondWithJSON(w, r, http.StatusOK, p)
 
 }
 

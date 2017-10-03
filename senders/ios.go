@@ -21,7 +21,7 @@ import (
 
 // IOS Struct
 type IOS struct {
-	ClientID int
+	ClientID string
 	Push     models.MultiplePush
 	Client   models.Client
 	cert     tls.Certificate

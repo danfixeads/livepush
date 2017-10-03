@@ -47,9 +47,9 @@ func TestCreatePush(t *testing.T) {
 	clearTestPushes()
 
 	var push models.Push
-	push.ClientID = null.Int{NullInt64: sql.NullInt64{
-		Int64: 2,
-		Valid: true,
+	push.ClientID = null.String{NullString: sql.NullString{
+		String: "xpto",
+		Valid:  true,
 	}}
 	push.Platform = null.String{NullString: sql.NullString{
 		String: "android",
