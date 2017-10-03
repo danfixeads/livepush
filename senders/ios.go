@@ -63,15 +63,18 @@ func (i *IOS) GetCertificate() error {
 
 	//fmt.Println(basepath)
 
+	// check and load the PEM file
 	if i.Client.PemFile.Valid {
 		i.cert, err = certificate.FromPemFile(fmt.Sprintf("%s/files/%s", basepath, i.Client.PemFile.String), i.Client.PassPhrase.String)
 	}
+	// if no PEM file, then try to load the P12 file
 	if i.cert.Certificate == nil {
 		if i.Client.P12File.Valid {
 			i.cert, err = certificate.FromP12File(fmt.Sprintf("%s/files/%s", basepath, i.Client.P12File.String), i.Client.PassPhrase.String)
 		}
 	}
 
+	// no files?  Then return an error
 	if i.cert.Certificate == nil && err != nil {
 		err = models.ErrFailedToLoadPEMFile
 	}

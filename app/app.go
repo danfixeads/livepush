@@ -10,6 +10,7 @@ import (
 
 	"github.com/danfixeads/livepush/models"
 	"github.com/gorilla/mux"
+	newrelic "github.com/newrelic/go-agent"
 
 	// Need the MySql driver
 	_ "github.com/go-sql-driver/mysql"
@@ -17,8 +18,9 @@ import (
 
 // App struct
 type App struct {
-	Router   *mux.Router
-	Database *sql.DB
+	Router      *mux.Router
+	Database    *sql.DB
+	newrelicapp newrelic.Application
 }
 
 // SetUpDatabase function
@@ -97,31 +99,63 @@ func (a *App) SetUpRouter() error {
 	a.Router = mux.NewRouter()
 
 	// client handling
-	a.Router.HandleFunc("/clients", a.clientList).Methods("GET")
-	a.Router.HandleFunc("/clients/{start:[0-9]+}", a.clientList).Methods("GET")
-	a.Router.HandleFunc("/clients/{limit:[0-9]+}", a.clientList).Methods("GET")
-	a.Router.HandleFunc("/clients/{start:[0-9]+}/{limit:[0-9]+}", a.clientList).Methods("GET")
-	a.Router.HandleFunc("/client", a.clientCreate).Methods("POST")
-	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientUpdate).Methods("PUT")
-	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientDelete).Methods("DELETE")
-	a.Router.HandleFunc("/client/{id:[0-9]+}", a.clientGet).Methods("GET")
+	a.routerFunc("/clients", a.clientList).Methods("GET")
+	a.routerFunc("/clients/{start:[0-9]+}", a.clientList).Methods("GET")
+	a.routerFunc("/clients/{limit:[0-9]+}", a.clientList).Methods("GET")
+	a.routerFunc("/clients/{start:[0-9]+}/{limit:[0-9]+}", a.clientList).Methods("GET")
+	a.routerFunc("/client", a.clientCreate).Methods("POST")
+	a.routerFunc("/client/{id:[0-9]+}", a.clientUpdate).Methods("PUT")
+	a.routerFunc("/client/{id:[0-9]+}", a.clientDelete).Methods("DELETE")
+	a.routerFunc("/client/{id:[0-9]+}", a.clientGet).Methods("GET")
 
 	// push handling
-	a.Router.HandleFunc("/push/ios", a.createPushIOS).Methods("POST")
-	a.Router.HandleFunc("/push/android", a.createPushAndroid).Methods("POST")
+	a.routerFunc("/push/ios", a.createPushIOS).Methods("POST")
+	a.routerFunc("/push/android", a.createPushAndroid).Methods("POST")
 
-	a.Router.HandleFunc("/pushes", a.pushList).Methods("GET")
-	a.Router.HandleFunc("/pushes/{start:[0-9]+}", a.pushList).Methods("GET")
-	a.Router.HandleFunc("/pushes/{limit:[0-9]+}", a.pushList).Methods("GET")
-	a.Router.HandleFunc("/pushes/{start:[0-9]+}/{limit:[0-9]+}", a.pushList).Methods("GET")
-	a.Router.HandleFunc("/push/{id:[0-9]+}", a.pushDelete).Methods("DELETE")
-	a.Router.HandleFunc("/push/{id:[0-9]+}", a.pushGet).Methods("GET")
+	a.routerFunc("/pushes", a.pushList).Methods("GET")
+	a.routerFunc("/pushes/{start:[0-9]+}", a.pushList).Methods("GET")
+	a.routerFunc("/pushes/{limit:[0-9]+}", a.pushList).Methods("GET")
+	a.routerFunc("/pushes/{start:[0-9]+}/{limit:[0-9]+}", a.pushList).Methods("GET")
+	a.routerFunc("/push/{id:[0-9]+}", a.pushDelete).Methods("DELETE")
+	a.routerFunc("/push/{id:[0-9]+}", a.pushGet).Methods("GET")
 
 	// return and start the server (if not test)
 	if strings.Contains(os.Args[0], "/_test/") {
 		return nil
 	}
 	return http.ListenAndServe(":8080", a.Router)
+}
+
+func (a *App) routerFunc(path string, f func(http.ResponseWriter,
+	*http.Request)) *mux.Route {
+
+	// if New Relic is active, then wrap the function to enable the transactions for this route request
+	if a.newrelicapp != nil {
+		a.Router.HandleFunc(newrelic.WrapHandleFunc(a.newrelicapp, path, f))
+	}
+
+	return a.Router.HandleFunc(path, f)
+}
+
+// SetUpNewRelic function
+func (a *App) SetUpNewRelic() error {
+
+	if strings.Contains(os.Args[0], "/_test/") {
+		return nil
+	}
+
+	var err error
+
+	cfg := models.ReturnConfig()
+
+	if len(cfg.NewRelicKey) > 0 {
+		config := newrelic.NewConfig(cfg.NewRelicName, cfg.NewRelicKey)
+		app, errNewRelic := newrelic.NewApplication(config)
+		err = errNewRelic
+		a.newrelicapp = app
+	}
+
+	return err
 }
 
 // -----------------------

@@ -16,6 +16,7 @@ func main() {
 func setUpApp() {
 	checkSetUpError(App.SetUpDatabase())
 	checkSetUpError(App.SetUpDatabaseTables())
+	checkSetUpError(App.SetUpNewRelic())
 	checkSetUpError(App.SetUpRouter())
 }
 
