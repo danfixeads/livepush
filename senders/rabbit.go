@@ -99,7 +99,7 @@ func (r *Rabbit) Send(clientID string, operation string, code int, request *http
 				Body:        []byte(string(body)),
 			})
 
-		fmt.Printf("Sending msg: %v - Error: %v", string(body), err)
+		// fmt.Printf("Sending msg: %v - Error: %v", string(body), err)
 
 		return err
 
