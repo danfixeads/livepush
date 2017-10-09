@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/danfixeads/livepush/senders"
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/danfixeads/livepush/models"
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	newrelic "github.com/newrelic/go-agent"
 
@@ -29,10 +31,10 @@ type App struct {
 // SetUpDatabase function
 func (a *App) SetUpDatabase() error {
 
-	dbConfig := models.ReturnConfig()
+	config := models.ReturnConfig()
 
 	// try and connect
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbConfig.DBUser, dbConfig.DBPass, dbConfig.DBHost, dbConfig.DBPort, dbConfig.DBName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", config.DBUser, config.DBPass, config.DBHost, config.DBPort, config.DBName)
 	//fmt.Printf("Database connection string: %s", dsn)
 	a.Database, _ = sql.Open("mysql", dsn)
 	return a.Database.Ping()
@@ -104,7 +106,7 @@ func (a *App) SetUpRouter() error {
 	a.routerFunc("/push/ios", a.createPushIOS).Methods("POST")
 	a.routerFunc("/push/android", a.createPushAndroid).Methods("POST")
 
-	a.routerFunc("/pushes", a.pushList).Methods("GET")
+	a.routerFunc("/pushes", a.validate(a.pushList)).Methods("GET")
 	a.routerFunc("/pushes/{start:[0-9]+}", a.pushList).Methods("GET")
 	a.routerFunc("/pushes/{limit:[0-9]+}", a.pushList).Methods("GET")
 	a.routerFunc("/pushes/{start:[0-9]+}/{limit:[0-9]+}", a.pushList).Methods("GET")
@@ -118,8 +120,42 @@ func (a *App) SetUpRouter() error {
 	return http.ListenAndServe(":8080", a.Router)
 }
 
-func (a *App) routerFunc(path string, f func(http.ResponseWriter,
-	*http.Request)) *mux.Route {
+// Middleware to protect private pages
+func (a *App) validate(protectedPage http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		authorizationHeader := req.Header.Get("authorization")
+		if authorizationHeader != "" {
+
+			config := models.ReturnConfig()
+
+			verifyKey, _ := jwt.ParseRSAPublicKeyFromPEM([]byte(config.TokenKey))
+
+			token, err := jwt.Parse(authorizationHeader, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+					return nil, fmt.Errorf("There was an error")
+				}
+				return verifyKey, nil
+			})
+
+			//fmt.Printf("%v - %v", token, err)
+
+			if err != nil {
+				a.respondWithError(w, req, http.StatusBadRequest, err.Error())
+				return
+			}
+			if token.Valid {
+				context.Set(req, "decoded", token.Claims)
+				protectedPage(w, req)
+			} else {
+				a.respondWithError(w, req, http.StatusForbidden, "Invalid authorization token")
+			}
+		} else {
+			a.respondWithError(w, req, http.StatusForbidden, "An authorization header is required")
+		}
+	})
+}
+
+func (a *App) routerFunc(path string, f http.HandlerFunc) *mux.Route {
 
 	// if New Relic is active, then wrap the function to enable the transactions for this route request
 	if a.newrelicapp != nil {
