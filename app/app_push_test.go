@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+var testAuthorization = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJzdHMiLCJleHAiOjc1MDcxMzE5OTYsImlhdCI6MTUwNzEzMTk5NiwiaXNzIjoiYWRtaW5Ac2VydmljZXMub2x4LmNvbSIsIm5iZiI6MTUwNzEzMTk5Nn0.Zm8pSlZahvWPhsl9eoVhAKgEtezjn-ht5H91XmE8W3pKenTkYT4bC-bn97dO-6NACQ43RTtNIlU327cBlpAuM22kUWVR2qd5X6Bo3-PeRb39s_uJNTDcngBxzwLaAItePVUa5fEcSz4_PTn8jVW4-m3K9kq0_Ql3rElvjZVT_6c"
+
 // -----------------------
 // CREATE (IOS)-----------
 // -----------------------
@@ -20,7 +22,6 @@ func TestCreatePushIOS(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-		"clientid": "xpto",
 		"tokens": ["f7534f19f6103e1a7ee26de615f2b8c8d3eeb63dc3da9922388ebfbf2b4d7717",
 			"944f5c35533d770566901cf533aceef1111d8bd86d8e081e4f3603ddbb928875",
 			"e9d03c7b63f950944eb5e34e4b875d7ad4918bc9ca71926afe11b1e30ec235c3",
@@ -48,16 +49,13 @@ func TestCreatePushIOS(t *testing.T) {
 	}`)
 
 	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusCreated, response.Code)
 
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
-
-	if m["clientid"] == "" || m["clientid"] == nil {
-		t.Errorf("Expected the ClientID to be greater than '0'. Got '%v' instead!", m["clientid"])
-	}
 
 }
 
@@ -66,6 +64,7 @@ func TestCreatePushIOSWithInvalidPayload(t *testing.T) {
 	payload := []byte(`{"clientid",1}`)
 
 	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
@@ -77,6 +76,7 @@ func TestCreatePushIOSWithMissingClientID(t *testing.T) {
 	payload := []byte(`{"missing":1}`)
 
 	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
@@ -89,7 +89,6 @@ func TestCreatePushIOSWithIncorrectCertificates(t *testing.T) {
 	addTestClientValuesIncorrectCertificates()
 
 	payload := []byte(`{
-		"clientid": "xpto",
 		"tokens": [
 			"rubbish"
 		],
@@ -112,6 +111,7 @@ func TestCreatePushIOSWithIncorrectCertificates(t *testing.T) {
 	}`)
 
 	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
@@ -124,7 +124,6 @@ func TestCreatePushIOSWithInvalidDevices(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-		"clientid": "xpto",
 		"tokens": [
 			"expired_token...",
 			"rubbish"
@@ -148,6 +147,7 @@ func TestCreatePushIOSWithInvalidDevices(t *testing.T) {
 	}`)
 
 	req, _ := http.NewRequest("POST", "/push/ios", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
@@ -165,7 +165,6 @@ func TestCreatePushAndroid(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-			"clientid": "xpto",
 			"tokens": ["fRE69G6iGx0:APA91bGJZBlY-2Ljor-WeDEWZghcA0yY5SC5pJeNtQp_OHnlktCy_2uQTacceaRUp5ieIiW6CLk6DXndBJeAReHLVvV1DgA4cpOyUaBU0Wb6CNJ86vOo9RnG0U9h9PFuAdi4nSNbc1qH",
 				"rubbish",
 				"dCB_XXqF-NU:APA91bGbqW5v_qd9gaAaVvhITgsohGhUHIp-pHxxFMAzSmvRKIqJPnjMZcqMVAZX4O8PSW9iYZcd-JRHSNKMf0Mb9JWxYY1llOtxN0dx1_fhxSjKPo0-SuObdfqPw3ZpNo7_AndKSq7P"
@@ -185,6 +184,7 @@ func TestCreatePushAndroid(t *testing.T) {
 		}`)
 
 	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusCreated, response.Code)
@@ -192,17 +192,14 @@ func TestCreatePushAndroid(t *testing.T) {
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
 
-	if m["clientid"] == "" || m["clientid"] == nil {
-		t.Errorf("Expected the ClientID to be greater than '0'. Got '%v' instead!", m["clientid"])
-	}
-
 }
 
 func TestCreatePushAndroidWithInvalidPayload(t *testing.T) {
 
-	payload := []byte(`{"clientid","xpto"}`)
+	payload := []byte(`{"clientid","` + testClientID + `"}`)
 
 	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
@@ -214,6 +211,7 @@ func TestCreatePushAndroidWithMissingClientID(t *testing.T) {
 	payload := []byte(`{"missing":1}`)
 
 	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
@@ -226,7 +224,6 @@ func TestCreatePushAndroidWithInvalidDevices(t *testing.T) {
 	addTestClientValues()
 
 	payload := []byte(`{
-			"clientid": "xpto",
 			"tokens": [
 				"expired_token...",
 				"rubbish"
@@ -247,6 +244,7 @@ func TestCreatePushAndroidWithInvalidDevices(t *testing.T) {
 		}`)
 
 	req, _ := http.NewRequest("POST", "/push/android", bytes.NewBuffer(payload))
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
@@ -263,6 +261,7 @@ func TestGetPush(t *testing.T) {
 	addTestPushes(12)
 
 	req, _ := http.NewRequest("GET", "/push/9", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, response.Code)
@@ -271,7 +270,7 @@ func TestGetPush(t *testing.T) {
 	json.Unmarshal(response.Body.Bytes(), &m)
 
 	if m["id"] == 0 || m["id"] == nil {
-		t.Errorf("Expected the ID to be greater than '0'. Got '%v' instead!", m["id"])
+		t.Errorf("Expected the ClientID to contain a value. Got '%v' instead!", m["id"])
 	}
 }
 
@@ -281,6 +280,7 @@ func TestGetPushWithInvalidID(t *testing.T) {
 	addTestPushes(1)
 
 	req, _ := http.NewRequest("GET", "/push/123", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusNotFound, response.Code)
@@ -296,6 +296,7 @@ func TestDeletePush(t *testing.T) {
 	addTestPushes(12)
 
 	req, _ := http.NewRequest("DELETE", "/push/8", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, response.Code)
@@ -307,6 +308,7 @@ func TestDeletePushWithInvalidID(t *testing.T) {
 	addTestPushes(12)
 
 	req, _ := http.NewRequest("DELETE", "/push/501", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusInternalServerError, response.Code)
@@ -322,6 +324,7 @@ func TestListPushes(t *testing.T) {
 	addTestPushes(122)
 
 	req, _ := http.NewRequest("GET", "/pushes", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, response.Code)
@@ -337,6 +340,7 @@ func TestListPushesEmptyResponse(t *testing.T) {
 	clearTestPushes()
 
 	req, _ := http.NewRequest("GET", "/pushes", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, response.Code)
@@ -353,6 +357,7 @@ func TestListPushesPagination(t *testing.T) {
 	addTestPushes(122)
 
 	req, _ := http.NewRequest("GET", "/pushes/2/7", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, response.Code)
@@ -368,6 +373,7 @@ func TestListPushesPaginationWithInvalidStartValue(t *testing.T) {
 	addTestPushes(122)
 
 	req, _ := http.NewRequest("GET", "/pushes/0/1", nil)
+	req.Header.Add("authorization", testAuthorization)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusOK, response.Code)
@@ -397,7 +403,7 @@ func addTestPushes(count int) {
 	var values = make([]string, count)
 
 	for i := 0; i < count; i++ {
-		values[i] = fmt.Sprintf("('xpto','token_%v','ios',NOW())", i+1)
+		values[i] = fmt.Sprintf("('%s','token_%v','ios',NOW())", testClientID, i+1)
 	}
 
 	var query = fmt.Sprintf("INSERT INTO push (clientid,token,platform,inserted) VALUES %v", strings.Join(values, ", "))

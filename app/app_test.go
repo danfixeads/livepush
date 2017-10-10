@@ -10,6 +10,7 @@ import (
 )
 
 var a = app.App{}
+var testClientID = "admin@services.olx.com"
 
 func TestMain(m *testing.M) {
 

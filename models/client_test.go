@@ -33,7 +33,7 @@ func TestGetByClientID(t *testing.T) {
 	addTestClients(5)
 
 	var client models.Client
-	err := client.GetByClientID(a.Database, "xpto")
+	err := client.GetByClientID(a.Database, testClientID)
 	if err != nil {
 		t.Errorf("Following error occured: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCreateClient(t *testing.T) {
 
 	var client models.Client
 	client.ClientID = null.String{NullString: sql.NullString{
-		String: "xpto",
+		String: testClientID,
 		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{
@@ -102,7 +102,7 @@ func TestCreateClientWithEmptyPassPhrase(t *testing.T) {
 
 	var client models.Client
 	client.ClientID = null.String{NullString: sql.NullString{
-		String: "xpto",
+		String: testClientID,
 		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{
@@ -123,7 +123,7 @@ func TestCreateClientWithEmptyBundleIdentifier(t *testing.T) {
 
 	var client models.Client
 	client.ClientID = null.String{NullString: sql.NullString{
-		String: "xpto",
+		String: testClientID,
 		Valid:  true,
 	}}
 	client.P12File = null.String{NullString: sql.NullString{

@@ -9,10 +9,8 @@ import (
 	"strings"
 
 	"github.com/danfixeads/livepush/senders"
-	"github.com/dgrijalva/jwt-go"
 
 	"github.com/danfixeads/livepush/models"
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	newrelic "github.com/newrelic/go-agent"
 
@@ -103,56 +101,21 @@ func (a *App) SetUpRouter() error {
 	a.routerFunc("/client/{id:[0-9]+}", a.clientGet).Methods("GET")
 
 	// push handling
-	a.routerFunc("/push/ios", a.createPushIOS).Methods("POST")
-	a.routerFunc("/push/android", a.createPushAndroid).Methods("POST")
+	a.routerFunc("/push/ios", a.tokenValidate(a.createPushIOS)).Methods("POST")
+	a.routerFunc("/push/android", a.tokenValidate(a.createPushAndroid)).Methods("POST")
 
-	a.routerFunc("/pushes", a.validate(a.pushList)).Methods("GET")
-	a.routerFunc("/pushes/{start:[0-9]+}", a.pushList).Methods("GET")
-	a.routerFunc("/pushes/{limit:[0-9]+}", a.pushList).Methods("GET")
-	a.routerFunc("/pushes/{start:[0-9]+}/{limit:[0-9]+}", a.pushList).Methods("GET")
-	a.routerFunc("/push/{id:[0-9]+}", a.pushDelete).Methods("DELETE")
-	a.routerFunc("/push/{id:[0-9]+}", a.pushGet).Methods("GET")
+	a.routerFunc("/pushes", a.tokenValidate(a.pushList)).Methods("GET")
+	a.routerFunc("/pushes/{start:[0-9]+}", a.tokenValidate(a.pushList)).Methods("GET")
+	a.routerFunc("/pushes/{limit:[0-9]+}", a.tokenValidate(a.pushList)).Methods("GET")
+	a.routerFunc("/pushes/{start:[0-9]+}/{limit:[0-9]+}", a.tokenValidate(a.pushList)).Methods("GET")
+	a.routerFunc("/push/{id:[0-9]+}", a.tokenValidate(a.pushDelete)).Methods("DELETE")
+	a.routerFunc("/push/{id:[0-9]+}", a.tokenValidate(a.pushGet)).Methods("GET")
 
 	// return and start the server (if not test)
 	if strings.Contains(os.Args[0], "/_test/") {
 		return nil
 	}
 	return http.ListenAndServe(":8080", a.Router)
-}
-
-// Middleware to protect private pages
-func (a *App) validate(protectedPage http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		authorizationHeader := req.Header.Get("authorization")
-		if authorizationHeader != "" {
-
-			config := models.ReturnConfig()
-
-			verifyKey, _ := jwt.ParseRSAPublicKeyFromPEM([]byte(config.TokenKey))
-
-			token, err := jwt.Parse(authorizationHeader, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-					return nil, fmt.Errorf("There was an error")
-				}
-				return verifyKey, nil
-			})
-
-			//fmt.Printf("%v - %v", token, err)
-
-			if err != nil {
-				a.respondWithError(w, req, http.StatusBadRequest, err.Error())
-				return
-			}
-			if token.Valid {
-				context.Set(req, "decoded", token.Claims)
-				protectedPage(w, req)
-			} else {
-				a.respondWithError(w, req, http.StatusForbidden, "Invalid authorization token")
-			}
-		} else {
-			a.respondWithError(w, req, http.StatusForbidden, "An authorization header is required")
-		}
-	})
 }
 
 func (a *App) routerFunc(path string, f http.HandlerFunc) *mux.Route {
@@ -198,7 +161,7 @@ func (a *App) respondWithJSON(w http.ResponseWriter, r *http.Request, code int, 
 
 	response, _ := json.Marshal(payload)
 
-	go a.Rabbit.Send("client_id", fmt.Sprint(r.URL), code, r, string(response), 0)
+	go a.Rabbit.Send(a.returnClientID(r), fmt.Sprint(r.URL), code, r, string(response), 0)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

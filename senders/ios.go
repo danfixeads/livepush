@@ -118,7 +118,10 @@ func (i *IOS) SendMessage(db *sql.DB) ([]models.Push, error) {
 		iospush.notification.Payload = []byte(pLoad)
 
 		iospush.Push = models.Push{}
-		iospush.Push.ClientID = i.Push.ClientID
+		iospush.Push.ClientID = null.String{NullString: sql.NullString{
+			String: i.ClientID,
+			Valid:  true,
+		}}
 		iospush.Push.Token = token
 		iospush.Push.Platform = null.String{NullString: sql.NullString{
 			String: "ios",

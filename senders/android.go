@@ -68,7 +68,10 @@ func (a *Android) SendMessage(db *sql.DB) ([]models.Push, error) {
 		androidpush.payload = a.Push.Payload
 
 		androidpush.Push = models.Push{}
-		androidpush.Push.ClientID = a.Push.ClientID
+		androidpush.Push.ClientID = null.String{NullString: sql.NullString{
+			String: a.ClientID,
+			Valid:  true,
+		}}
 		androidpush.Push.Token = token
 		androidpush.Push.Platform = null.String{NullString: sql.NullString{
 			String: "android",

@@ -22,7 +22,7 @@ type Push struct {
 
 // Get method
 func (p *Push) Get(db *sql.DB, id int) error {
-	return db.QueryRow("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push WHERE id = ?", id).Scan(&p.ID, &p.ClientID, &p.Token, &p.Platform, &p.Payload, &p.Inserted, &p.Sent, &p.Response, &p.Attempts)
+	return db.QueryRow("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push WHERE id = ? AND clientid = ?", id, p.ClientID).Scan(&p.ID, &p.ClientID, &p.Token, &p.Platform, &p.Payload, &p.Inserted, &p.Sent, &p.Response, &p.Attempts)
 }
 
 // Create function
@@ -32,7 +32,7 @@ func (p *Push) Create(db *sql.DB) error {
 	// check the required fields
 	err = p.validateFields()
 	if err != nil {
-		// println("Required field err:", err.Error())
+		//println("Required field err:", err.Error())
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (p *Push) Create(db *sql.DB) error {
 
 // Delete function
 func (p *Push) Delete(db *sql.DB) error {
-	rows, err := db.Exec("DELETE FROM push WHERE id = ?", p.ID)
+	rows, err := db.Exec("DELETE FROM push WHERE id = ? AND clientid = ?", p.ID, p.ClientID)
 
 	if affected, _ := rows.RowsAffected(); affected == 0 {
 		err = errors.New("No records were deleted")
@@ -65,10 +65,10 @@ func (p *Push) Delete(db *sql.DB) error {
 }
 
 // ListPushes function
-func ListPushes(db *sql.DB, start, limit int) ([]Push, error) {
+func ListPushes(db *sql.DB, start, limit int, clientid string) ([]Push, error) {
 
 	var err error
-	rows, errQuery := db.Query("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push ORDER BY id DESC LIMIT ? OFFSET ?", limit, start)
+	rows, errQuery := db.Query("SELECT id, clientid, token, platform, payload, inserted, sent, response, attempts FROM push WHERE clientid = ? ORDER BY id DESC LIMIT ? OFFSET ?", clientid, limit, start)
 	err = errQuery
 
 	defer rows.Close()

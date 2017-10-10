@@ -8,6 +8,9 @@ import (
 	null "gopkg.in/guregu/null.v3"
 )
 
+var testAuthorization = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJzdHMiLCJleHAiOjc1MDcxMzE5OTYsImlhdCI6MTUwNzEzMTk5NiwiaXNzIjoiYWRtaW5Ac2VydmljZXMub2x4LmNvbSIsIm5iZiI6MTUwNzEzMTk5Nn0.Zm8pSlZahvWPhsl9eoVhAKgEtezjn-ht5H91XmE8W3pKenTkYT4bC-bn97dO-6NACQ43RTtNIlU327cBlpAuM22kUWVR2qd5X6Bo3-PeRb39s_uJNTDcngBxzwLaAItePVUa5fEcSz4_PTn8jVW4-m3K9kq0_Ql3rElvjZVT_6c"
+var testClientID = "admin@services.olx.com"
+
 // -----------------------
 // GET -------------------
 // -----------------------
@@ -18,6 +21,10 @@ func TestGetPush(t *testing.T) {
 	addTestPushes(5)
 
 	var push models.Push
+	push.ClientID = null.String{NullString: sql.NullString{
+		String: testClientID,
+		Valid:  true,
+	}}
 	err := push.Get(a.Database, 1)
 	if err != nil {
 		t.Errorf("Following error occured: %v", err)
@@ -31,6 +38,10 @@ func TestGetPushByInvalidID(t *testing.T) {
 	addTestPushes(5)
 
 	var push models.Push
+	push.ClientID = null.String{NullString: sql.NullString{
+		String: testClientID,
+		Valid:  true,
+	}}
 	err := push.Get(a.Database, 100)
 	if err == nil {
 		t.Error("An error should have occured")
@@ -48,7 +59,7 @@ func TestCreatePush(t *testing.T) {
 
 	var push models.Push
 	push.ClientID = null.String{NullString: sql.NullString{
-		String: "xpto",
+		String: testClientID,
 		Valid:  true,
 	}}
 	push.Platform = null.String{NullString: sql.NullString{
@@ -91,6 +102,10 @@ func TestDeletePush(t *testing.T) {
 
 	var push models.Push
 	push.ID = 2
+	push.ClientID = null.String{NullString: sql.NullString{
+		String: testClientID,
+		Valid:  true,
+	}}
 	err := push.Delete(a.Database)
 	if err != nil {
 		t.Errorf("Following error occured: %v", err)
@@ -104,6 +119,10 @@ func TestDeleteNonExistingPush(t *testing.T) {
 
 	var push models.Push
 	push.ID = 200
+	push.ClientID = null.String{NullString: sql.NullString{
+		String: testClientID,
+		Valid:  true,
+	}}
 	err := push.Delete(a.Database)
 	if err == nil {
 		t.Error("Should have returned validation errors")
@@ -119,7 +138,7 @@ func TestListPushes(t *testing.T) {
 	clearTestPushes()
 	addTestPushes(25)
 
-	pushes, err := models.ListPushes(a.Database, 0, 50)
+	pushes, err := models.ListPushes(a.Database, 0, 50, testClientID)
 	if err != nil {
 		t.Errorf("Following error occured: %v", err)
 	}
@@ -135,7 +154,7 @@ func TestListPushesPagination(t *testing.T) {
 	clearTestPushes()
 	addTestPushes(40)
 
-	pushes, err := models.ListPushes(a.Database, 0, 20)
+	pushes, err := models.ListPushes(a.Database, 0, 20, testClientID)
 	if err != nil {
 		t.Errorf("Following error occured: %v", err)
 	}

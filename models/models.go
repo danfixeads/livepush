@@ -38,3 +38,6 @@ var ErrFailedToLoadPEMFile = errors.New("Failed to loaded either PEM or P12 file
 
 // ErrFailedToSendPush variable for Error handling
 var ErrFailedToSendPush = errors.New("Failed to send push (or all pushes)")
+
+// ErrFailedToLoadClient variable for Error handling
+var ErrFailedToLoadClient = errors.New("Failed to load client record")

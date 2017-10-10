@@ -24,10 +24,10 @@ func (a *App) createPushIOS(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var ios senders.IOS
-	ios.ClientID = mp.ClientID.String
+	ios.ClientID = a.returnClientID(r)
 	ios.Push = mp
 	if err := ios.GetClient(a.Database); err != nil {
-		a.respondWithError(w, r, http.StatusBadRequest, err.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, models.ErrFailedToLoadClient.Error())
 		return
 	}
 
@@ -59,11 +59,10 @@ func (a *App) createPushAndroid(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var android senders.Android
-	android.ClientID = mp.ClientID.String
+	android.ClientID = a.returnClientID(r)
 	android.Push = mp
 	if err := android.GetClient(a.Database); err != nil {
-		fmt.Print(err.Error())
-		a.respondWithError(w, r, http.StatusBadRequest, err.Error())
+		a.respondWithError(w, r, http.StatusBadRequest, models.ErrFailedToLoadClient.Error())
 		return
 	}
 
@@ -84,7 +83,10 @@ func (a *App) pushDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 
-	p := models.Push{ID: id}
+	p := models.Push{ID: id,
+		ClientID: a.returnClientIDNullString(r),
+	}
+
 	if err := p.Delete(a.Database); err != nil {
 		a.respondWithError(w, r, http.StatusInternalServerError, err.Error())
 		return
@@ -105,7 +107,7 @@ func (a *App) pushList(w http.ResponseWriter, r *http.Request) {
 		limit = 10
 	}
 
-	clients, _ := models.ListPushes(a.Database, start, limit)
+	clients, _ := models.ListPushes(a.Database, start, limit, a.returnClientID(r))
 
 	a.respondWithJSON(w, r, http.StatusOK, clients)
 
@@ -116,7 +118,7 @@ func (a *App) pushGet(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.Atoi(vars["id"])
 
-	p := models.Push{}
+	p := models.Push{ClientID: a.returnClientIDNullString(r)}
 	if err := p.Get(a.Database, id); err != nil {
 		switch err {
 		default:
